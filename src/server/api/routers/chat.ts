@@ -5,8 +5,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { chatWithLLM } from "../handlers/chatwithllm";
-
+  
 export const chatRouter = createTRPCRouter({
   hello: publicProcedure
     .input(z.object({ message: z.string() }))
@@ -16,9 +15,9 @@ export const chatRouter = createTRPCRouter({
       };
     }),
   createChat: protectedProcedure.input(z.object({ message: z.string() })).mutation(async ({ ctx, input }) => {
-    const chat = await chatWithLLM(input.message);
+
     return {
-      message: chat,
+      message: input.message,
     };
   }),
 });
