@@ -18,6 +18,7 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
       TYPEGPT_API_KEY: z.string(),
+      SECRURE_AUTH_SECRET: z.string(),
   },
 
   /**
@@ -40,6 +41,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     TYPEGPT_API_KEY: process.env.TYPEGPT_API_KEY,
+    SECRURE_AUTH_SECRET: process.env.SECRURE_AUTH_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

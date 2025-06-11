@@ -84,6 +84,7 @@ const TestimonialsSection: React.FC = () => {
                 className="text-center"
               >
                 {/* Stars */}
+                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
                 <div className="flex justify-center mb-6 text-white">
                   {[...Array(testimonials[currentIndex]?.rating)].map((_, i) => (
                     <Star key={i} size={24} weight="fill" className="text-yellow-400 mx-1" />
@@ -92,7 +93,7 @@ const TestimonialsSection: React.FC = () => {
 
                 {/* Testimonial Content */}
                 <blockquote className="text-2xl md:text-3xl font-light text-white mb-8 leading-relaxed max-w-4xl mx-auto">
-                  "{testimonials[currentIndex]?.content}"
+                  {testimonials[currentIndex]?.content}
                 </blockquote>
 
                 {/* Result Badge */}
