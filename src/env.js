@@ -19,6 +19,7 @@ export const env = createEnv({
       .default("development"),
       TYPEGPT_API_KEY: z.string(),
       SECRURE_AUTH_SECRET: z.string(),
+      WEBHOOK_URL: z.string().url(),
   },
 
   /**
@@ -42,6 +43,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     TYPEGPT_API_KEY: process.env.TYPEGPT_API_KEY,
     SECRURE_AUTH_SECRET: process.env.SECRURE_AUTH_SECRET,
+    WEBHOOK_URL: process.env.WEBHOOK_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
