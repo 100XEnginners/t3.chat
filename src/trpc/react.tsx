@@ -67,7 +67,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <SidebarProvider className="p-2">
+        <SidebarProvider className="p-2 flex flex-col">
           <api.Provider client={trpcClient} queryClient={queryClient}>
             {props.children}
           </api.Provider>
