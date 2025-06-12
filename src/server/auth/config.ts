@@ -46,6 +46,9 @@ export const authConfig = {
      */
   ],
   adapter: PrismaAdapter(db),
+  pages:{
+    signIn: "/auth",
+  },
   callbacks: {
     session: ({ session, user }) => ({
       ...session,

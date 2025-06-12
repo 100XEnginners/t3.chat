@@ -1,12 +1,11 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
 import { useSession } from "next-auth/react"
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ChatCircleDotsIcon, MicrophoneIcon, RobotIcon, SpinnerGapIcon } from '@phosphor-icons/react'
+import { ChatCircleDotsIcon, MicrophoneIcon } from '@phosphor-icons/react'
 import remarkGfm from "remark-gfm";
 import { useChat } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
@@ -25,7 +24,6 @@ const geistMono = Geist_Mono({
 
 const Chat = () => {
   const session = useSession()
-  const [response, setResponse] = useState<string>("")
 
   const { messages, setMessages, input, handleInputChange, handleSubmit, status } =
     useChat({

@@ -1,20 +1,14 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import axios from 'axios'
 import { useSession } from "next-auth/react"
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ChatCircleDotsIcon, MicrophoneIcon, RobotIcon, SpinnerGapIcon } from '@phosphor-icons/react'
-import remarkGfm from "remark-gfm";
-import { useChat } from "@ai-sdk/react";
-import ReactMarkdown from "react-markdown";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { cn } from '@/lib/utils'
+import { ChatCircleDotsIcon, MicrophoneIcon, SpinnerGapIcon } from '@phosphor-icons/react'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Geist_Mono } from 'next/font/google'
-import { useRouter } from 'next/navigation'
+import { api } from '@/trpc/react'
 
 const geistMono = Geist_Mono({
     subsets: ['latin'],
@@ -25,41 +19,24 @@ const geistMono = Geist_Mono({
 
 const UIInput = () => {
     const session = useSession();
+    const [model, setModel] = useState<string>("gpt-3.5-turbo")
     const [query, setQuery] = useState<string>("")
-    const router = useRouter();
+    const { mutate: createChat, isPending } = api.chat.createChat.useMutation();
 
     const handleCreateChat = async (e: any) => {
         e.preventDefault()
         try {
-
-            if (query) {
-                localStorage.setItem("chatQuery", query);
-            } else {
-                localStorage.removeItem("chatQuery"); // Clear if no query
-            }
-            // Call API to create a new chat
-            const response = await axios.post(
-                '/api/init-chat',
-                { query }, // Send query if provided
-            );
-
-            const { chatId, success } = response.data;
-
-            if (!success) {
-                throw new Error("Failed to create chat");
-            }
-
-            // Navigate to /chat/:chatId with optional query parameter
-            router.push(`/ask/${chatId}`);
-
+            const response = createChat({ message: query, model: model })
+            console.log(response)
+            setQuery("")
         } catch (error) {
             console.error('Failed to create chat:', error);
             // alert('Error creating chat');
         }
     };
     return (
-        <div className='flex h-full max-h-svh p-4'>
-            <div className='max-w-3xl flex flex-col mx-auto w-full h-full'>
+        <div className='flex h-full max-h-svh w-1/2 p-4 bg'>
+            <div className='max-w-3xl flex flex-col gap-4 mx-auto w-full h-full'>
                 <div className='h-full flex flex-col items-center justify-center flex-1'>
                     <div className='h-full flex flex-col items-center justify-center flex-1'>
                         <div className='drop-shadow-2xl drop-shadow-primary/60 size-20 mb-6 bg-primary rounded-xl relative overflow-hidden'>
@@ -89,7 +66,7 @@ const UIInput = () => {
                             <div className='bg-accent size-8 border flex items-center justify-center rounded-lg'>
                                 <MicrophoneIcon />
                             </div>
-                            <Select>
+                            <Select value={model} onValueChange={(value) => setModel(value)}>
                                 <SelectTrigger className="bg-accent active:ring-0 max-h-8">
                                     <SelectValue className='h-5' placeholder="Select Model" />
                                 </SelectTrigger>
@@ -97,12 +74,18 @@ const UIInput = () => {
                                     <SelectGroup>
                                         <SelectLabel>Models</SelectLabel>
                                         <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                                        <SelectItem value="gpt-4o">GPT 4o</SelectItem>
+                                        <SelectItem value="gpt-3.5-turbo">GPT 3.5 Turbo</SelectItem>
+                                        <SelectItem value="gpt-4o-mini">GPT 4o Mini</SelectItem>
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button type='submit' className='w-fit'>Send</Button>
+                        <Button type='submit' className='w-fit' disabled={isPending}>{isPending ? <SpinnerGapIcon className='animate-spin' /> : "Send"}</Button>
+                        {isPending && <div className='absolute top-0 left-0 w-full h-full bg-black/50 z-10'>
+                            <div className='flex items-center justify-center h-full'>
+                                <SpinnerGapIcon className='animate-spin' />
+                            </div>
+                        </div>}
                     </div>
                 </form>
 
