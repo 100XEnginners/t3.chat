@@ -20,7 +20,9 @@ export const env = createEnv({
       TYPEGPT_API_KEY: z.string(),
       SECRURE_AUTH_SECRET: z.string(),
       WEBHOOK_URL: z.string().url(),
-      TYPEGPT_API_URL: z.string().url()
+      TYPEGPT_API_URL: z.string().url(),
+      TURNSTILE_SITE_KEY: z.string(),
+      TURNSTILE_SITE_SECRET: z.string(),
   },
 
   /**
@@ -46,6 +48,8 @@ export const env = createEnv({
     SECRURE_AUTH_SECRET: process.env.SECRURE_AUTH_SECRET,
     WEBHOOK_URL: process.env.WEBHOOK_URL,
     TYPEGPT_API_URL: process.env.TYPEGPT_API_URL,
+    TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
+    TURNSTILE_SITE_SECRET: process.env.TURNSTILE_SITE_SECRET,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

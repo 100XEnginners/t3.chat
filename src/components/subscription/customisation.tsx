@@ -15,13 +15,24 @@ import {
 } from "@/components/ui/select";
 import { useFont } from "@/contexts/font-context";
 import { useBlur } from "@/contexts/blur-context";
-
+import { api } from "@/trpc/react";
+import { toast, Toaster } from "sonner";
+import { useRouter } from "next/navigation";
+import { FetchUser } from "@/actions/fetchUser";
 export const Customisation = () => {
-  const [name, setName] = useState<string>("");
-  const [occupation, setOccupation] = useState<string>("");
-  const [customTrait, setCustomTrait] = useState<string>("");
-  const [additionalInfo, setAdditionalInfo] = useState<string>("");
-  const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
+  const router = useRouter();
+  const [userPreferences, setUserPreferences] = useState<{
+    nickname: string | null;
+    whatDoYouDo: string | null;
+    customTraits: string[] | null;
+    about: string | null;
+  }>({
+    nickname: null,
+    whatDoYouDo: null,
+    customTraits: null,
+    about: null,
+  });
+
   const [isBoringTheme, setIsBoringTheme] = useState<boolean>(() => {
     // Initialize from localStorage if available
     if (typeof window !== "undefined") {
@@ -33,6 +44,36 @@ export const Customisation = () => {
   const { selectedFont, setSelectedFont } = useFont();
   const { isBlurred, setIsBlurred } = useBlur();
 
+  const { mutate: updateUser } = api.user.updateUser.useMutation( {
+    onSuccess: async () => {
+      toast.success("Preferences saved successfully");
+      // Fetch updated user data
+      const updatedUser = await FetchUser();
+      setUserPreferences({
+        nickname: updatedUser?.nickname || null,
+        whatDoYouDo: updatedUser?.whatDoYouDo || null,
+        customTraits: updatedUser?.customTraits || null,
+        about: updatedUser?.about || null,
+      });
+      router.refresh();
+    },
+    onError: (error) => {
+      console.error(`Error saving preferences: ${error}`);
+      toast.error("Failed to save preferences");
+    }
+  });
+  
+  useEffect(() => {
+   (async () => {
+    const user = await FetchUser();
+    setUserPreferences({
+      nickname: user?.nickname || null,
+      whatDoYouDo: user?.whatDoYouDo || null,
+      customTraits: user?.customTraits || null,
+      about: user?.about || null,
+    });
+   })();
+  }, []);
   // Debug log when component mounts
   useEffect(() => {
     console.log("Customisation mounted, blur state:", isBlurred);
@@ -63,19 +104,18 @@ export const Customisation = () => {
   ] as const;
 
   const addTrait = (trait: string) => {
-    if (!selectedTraits.includes(trait)) {
-      setSelectedTraits([...selectedTraits, trait]);
+    if (!userPreferences.customTraits?.includes(trait)) {
+      setUserPreferences({ ...userPreferences, customTraits: [...(userPreferences.customTraits || []), trait] });
     }
   };
 
   const removeTrait = (trait: string) => {
-    setSelectedTraits(selectedTraits.filter((t) => t !== trait));
+    setUserPreferences({ ...userPreferences, customTraits: userPreferences.customTraits?.filter((t) => t !== trait) || [] });
   };
 
   const addCustomTrait = () => {
-    if (customTrait.trim() && !selectedTraits.includes(customTrait.trim())) {
-      setSelectedTraits([...selectedTraits, customTrait.trim()]);
-      setCustomTrait("");
+    if (userPreferences.customTraits?.join(", ").trim() && !userPreferences.customTraits?.includes(userPreferences.customTraits?.join(", ").trim() || "")) {
+      setUserPreferences({ ...userPreferences, customTraits: [...(userPreferences.customTraits || []), userPreferences.customTraits?.join(", ").trim() || ""] });
     }
   };
 
@@ -83,6 +123,25 @@ export const Customisation = () => {
     if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       addCustomTrait();
+    }
+  };
+
+  const handleSavePreferences = () => {
+    console.log("Saving preferences");
+    try {
+      updateUser(
+        {
+          nickname: userPreferences.nickname || undefined,
+          whatDoYouDo: userPreferences.whatDoYouDo || undefined,
+          customTraits: userPreferences.customTraits || undefined,
+          about: userPreferences.about || undefined,
+        }
+      );
+      toast.success("Preferences saved successfully");
+      router.refresh();
+    } catch (error) {
+      console.error(`Error saving preferences: ${error}`);
+      toast.error("Failed to save preferences");
     }
   };
 
@@ -102,11 +161,11 @@ export const Customisation = () => {
             <Input
               type="text"
               placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={userPreferences.nickname || ""}
+              onChange={(e) => setUserPreferences({ ...userPreferences, nickname: e.target.value })}
             />
             <div className="text-muted-foreground mt-1 text-right text-xs">
-              {name.length}/50
+              {userPreferences.nickname?.length || 0}/50
             </div>
           </div>
 
@@ -118,11 +177,11 @@ export const Customisation = () => {
             <Input
               type="text"
               placeholder="Engineer, student, etc."
-              value={occupation}
-              onChange={(e) => setOccupation(e.target.value)}
+              value={userPreferences.whatDoYouDo || ""}
+              onChange={(e) => setUserPreferences({ ...userPreferences, whatDoYouDo: e.target.value })}
             />
             <div className="text-muted-foreground mt-1 text-right text-xs">
-              {occupation.length}/100
+              {userPreferences.whatDoYouDo?.length || 0}/100
             </div>
           </div>
 
@@ -138,9 +197,9 @@ export const Customisation = () => {
             {/* Custom trait input */}
             <div className="relative mb-0">
               <div className="bg-input/30 rounded-lg border p-2">
-                {selectedTraits.length > 0 && (
+                {userPreferences.customTraits?.length && (
                   <div className="mb-2 flex flex-wrap gap-2">
-                    {selectedTraits.map((trait) => (
+                    {userPreferences.customTraits?.map((trait) => (
                       <span
                         key={trait}
                         className="dark:bg-input/50 bg-background text-accent-foreground inline-flex items-center gap-1 rounded-md border px-3 py-1 text-xs font-medium"
@@ -160,13 +219,13 @@ export const Customisation = () => {
                   type="text"
                   className="border-none bg-transparent focus-visible:ring-0"
                   placeholder="Type a trait and press Enter or Tab..."
-                  value={customTrait}
-                  onChange={(e) => setCustomTrait(e.target.value)}
+                    value={userPreferences.customTraits?.join(", ") || ""}
+                  onChange={(e) => setUserPreferences({ ...userPreferences, customTraits: e.target.value.split(", ") || [] })}    
                   onKeyDown={handleKeyPress}
                 />
               </div>
               <div className="text-muted-foreground mt-1 text-right text-xs">
-                {customTrait.length}/100
+                {userPreferences.customTraits?.join(", ").length || 0}/100
               </div>
             </div>
 
@@ -176,7 +235,7 @@ export const Customisation = () => {
                 <Button
                   key={trait}
                   onClick={() => addTrait(trait)}
-                  disabled={selectedTraits.includes(trait)}
+                  disabled={userPreferences.customTraits?.includes(trait)}
                   variant="outline"
                   className="bg-accent h-fit py-1.5 text-xs"
                 >
@@ -196,19 +255,19 @@ export const Customisation = () => {
             </label>
             <Textarea
               placeholder="Interests, values, or preferences to keep in mind"
-              value={additionalInfo}
-              onChange={(e) => setAdditionalInfo(e.target.value)}
+              value={userPreferences.about || ""}
+              onChange={(e) => setUserPreferences({ ...userPreferences, about: e.target.value })}
               rows={4}
             />
             <div className="text-muted-foreground mt-1 text-right text-xs">
-              {additionalInfo.length}/300
+              {userPreferences.about?.length || 0}/300
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-4 pt-6">
             <Button variant="outline">Load Legacy Data</Button>
-            <Button className="ml-auto">Save Preferences</Button>
+            <Button className="ml-auto" onClick={handleSavePreferences}>Save Preferences</Button>
           </div>
 
           {/* Visual Options Section */}
@@ -286,6 +345,7 @@ export const Customisation = () => {
           </div>
         </div>
       </div>
+      <Toaster />
     </div>
   );
 };

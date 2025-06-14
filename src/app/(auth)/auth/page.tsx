@@ -32,7 +32,7 @@ function LoginPage() {
         </div>
         <Button
           variant="t3"
-          onClick={() => signIn("google")}
+          onClick={() => signIn("google", { callbackUrl: "/" })}
           className="h-14 w-[25rem] text-lg font-semibold text-white"
         >
           <svg

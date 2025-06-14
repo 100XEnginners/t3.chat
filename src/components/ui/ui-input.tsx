@@ -37,7 +37,6 @@ const UIInput = () => {
       setQuery("");
     } catch (error) {
       console.error("Failed to create chat:", error);
-      // alert('Error creating chat');
     }
   };
 

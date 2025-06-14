@@ -6,6 +6,7 @@ import { TRPCReactProvider } from "@/trpc/react";
 import localFont from "next/font/local";
 import { FontProvider } from "@/contexts/font-context";
 import { BlurProvider } from "@/contexts/blur-context";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "t3.chat",
@@ -59,7 +60,10 @@ export default function RootLayout({
       >
         <TRPCReactProvider>
           <FontProvider>
-            <BlurProvider>{children}</BlurProvider>
+            <BlurProvider>
+              {children}
+              <Toaster />
+            </BlurProvider>
           </FontProvider>
         </TRPCReactProvider>
       </body>

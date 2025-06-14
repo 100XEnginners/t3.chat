@@ -47,6 +47,14 @@ model User {
     name          String?
     email         String?   @unique
     emailVerified DateTime?
+    plan          Plan?   @default(FREE)
+    about         String?
+    nickname      String?
+    customTraits  String[]
+    whatDoYouDo   String?
+    planExpiresAt DateTime?
+    planCreatedAt DateTime? @default(now())
+    planUpdatedAt DateTime? @updatedAt
     image         String?
     accounts      Account[]
     sessions      Session[] 
@@ -80,4 +88,9 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+enum Plan {
+    FREE
+    PRO
 }
