@@ -12,8 +12,14 @@ export const CreateChat = () => {
   const [message, setMessage] = useState("");
   return (
     <div>
-      <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} />
-      <button onClick={() => createChat({ message: message })}>Create Chat</button>
+      <input
+        type="text"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+      />
+      <button onClick={() => createChat({ message: message, model: "gpt-4o" })}>
+        Create Chat
+      </button>
     </div>
   );
 };
