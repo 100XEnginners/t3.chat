@@ -11,6 +11,8 @@ import { type AppRouter } from "@/server/api/root";
 import { createQueryClient } from "./query-client";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { ThemeProvider } from "../components/theme-provider";
+import { FontProvider } from "@/contexts/font-context";
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
 const getQueryClient = () => {
@@ -66,13 +68,20 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <SidebarProvider className="p-2 flex flex-col">
-          <api.Provider client={trpcClient} queryClient={queryClient}>
-            {props.children}
-          </api.Provider>
-        </SidebarProvider >
-      </SessionProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="dark"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <SidebarProvider>
+          <SessionProvider>
+            <api.Provider client={trpcClient} queryClient={queryClient}>
+              {props.children}
+            </api.Provider>
+          </SessionProvider>
+        </SidebarProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

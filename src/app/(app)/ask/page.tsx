@@ -1,16 +1,15 @@
-import React from 'react'
-import Chat from '../../_components/Chat'
-import { HydrateClient } from '@/trpc/server'
-import UIInput from '@/components/ui/ui-input'
+import React from "react";
+import { HydrateClient } from "@/trpc/server";
+import UIInput from "@/components/ui/ui-input";
 
 const page = () => {
   return (
     <HydrateClient>
-      <div className='flex flex-col max-w-screen min-h-screen justify-center items-center'>
+      <div className="flex w-full max-w-screen flex-col items-center justify-center">
         <UIInput />
       </div>
     </HydrateClient>
-  )
-}
+  );
+};
 
-export default page
+export default page;
