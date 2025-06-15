@@ -2,6 +2,7 @@
 import React from 'react';
 import { Check, Star } from '@phosphor-icons/react';
 import ScrollReveal from '../components/ScrollReveal';
+import PricingButton from '@/components/ui/pricing-button';
 
 const PricingSection: React.FC = () => {
   const plans = [
@@ -21,7 +22,7 @@ const PricingSection: React.FC = () => {
     },
     {
       name: 'Pro',
-      price: '$29',
+      price: '$8',
       period: 'per month',
       description: 'Ideal for professionals and growing teams',
       features: [
@@ -37,7 +38,7 @@ const PricingSection: React.FC = () => {
     },
     {
       name: 'Enterprise',
-      price: 'Custom',
+      price: '$0',
       period: 'contact us',
       description: 'Tailored solutions for large organizations',
       features: [
@@ -86,7 +87,7 @@ const PricingSection: React.FC = () => {
                   <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                   <div className="flex items-baseline justify-center mb-2">
                     <span className="text-4xl font-bold">{plan.price}</span>
-                    {plan.price !== 'Custom' && (
+                    {plan.price !== '$0' && (
                       <span className="text-muted ml-1">/{plan.period}</span>
                     )}
                   </div>
@@ -102,13 +103,7 @@ const PricingSection: React.FC = () => {
                   ))}
                 </ul>
 
-                <button className={`w-full py-3 px-6 rounded-2xl font-medium transition-all duration-300 ${
-                  plan.recommended
-                    ? 'neomorphic-btn text-white'
-                    : 'glass-card hover:bg-white/10 text-white border border-white/20'
-                }`}>
-                  {plan.price === 'Custom' ? 'Contact Sales' : 'Get Started'}
-                </button>
+                  <PricingButton plan={plan.name} amount={Number(plan.price.split('$')[1])} />
               </div>
             </ScrollReveal>
           ))}

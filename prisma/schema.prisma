@@ -47,18 +47,44 @@ model User {
     name          String?
     email         String?   @unique
     emailVerified DateTime?
-    plan          Plan?   @default(FREE)
     about         String?
     nickname      String?
     customTraits  String[]
     whatDoYouDo   String?
-    planExpiresAt DateTime?
-    planCreatedAt DateTime? @default(now())
-    planUpdatedAt DateTime? @updatedAt
     image         String?
     accounts      Account[]
     sessions      Session[] 
     chats         Chat[]
+    subscription  Subscription?  @relation("user_subscription")
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String @unique
+  plan      Plan
+  paymentId String
+  orderId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  user      User       @relation("user_subscription", fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+
+model Transaction {
+  id          String           @id @default(cuid())
+  userId      String
+  amount      Int
+  currency    String
+  paymentId   String
+  orderId     String
+  plan        Plan
+  status      TransactionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
 }
 
 model Chat {
@@ -93,4 +119,10 @@ model VerificationToken {
 enum Plan {
     FREE
     PRO
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
