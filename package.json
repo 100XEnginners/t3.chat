@@ -46,6 +46,7 @@
     "@trpc/server": "^11.0.0",
     "@types/nodemailer": "^6.4.17",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@upstash/ratelimit": "^2.0.5",
     "ai": "^4.3.16",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",

@@ -6,6 +6,7 @@ import { sendEmailNotification } from '@/actions/sendSubscriptionMail';
 
 const webhookSecret = env.STRIPE_WEBHOOK_SECRET!;
 
+
 const stripe = new Stripe(env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil'
 });

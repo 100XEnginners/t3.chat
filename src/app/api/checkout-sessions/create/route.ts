@@ -2,12 +2,40 @@ import { env } from "@/env";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { auth } from "@/server/auth"
+import { Ratelimit } from "@upstash/ratelimit";
+import { redis } from "@/lib/redis";
+
+const ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(2, "30m"),
+    analytics: true,
+    prefix: "ratelimit:checkout-sessions",
+});
+
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
     apiVersion: "2025-05-28.basil",
 });
 
 export async function POST(req: NextRequest) {
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    console.log("Request from IP:", ip);
+    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+
+    const headers = {
+      "X-RateLimit-Limit": limit.toString(),
+      "X-RateLimit-Remaining": remaining.toString(),
+      "X-RateLimit-Reset": reset.toString(),
+    };
+
+    if (!success) {
+      console.log(`Rate limit exceeded for IP ${ip}. Remaining: ${remaining}`);
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers },
+      );
+    }
+
     console.log(env.STRIPE_SECRET_KEY)
     try {
         const session = await auth();
