@@ -23,7 +23,6 @@ const AskPage = () => {
             toast.success("Verification successful", {
               description: "You can now ask a question",
             });
-            console.log("Turnstile token:", token);
           }}
           theme="light"
           size="normal"

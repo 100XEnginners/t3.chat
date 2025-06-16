@@ -82,7 +82,6 @@ const Chat = () => {
   //     localStorage.removeItem("chatQuery"); // Clear to avoid reuse
   //   }
   // }, []);
-  console.log(process.env.NEXT_PUBLIC_TYPEGPT_API_KEY);
 
   // const handleSendMessage = async () => {
   //   const response = await axios.post(

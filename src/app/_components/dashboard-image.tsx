@@ -1,5 +1,4 @@
 import Image from "next/image";
-
 export const DashboardImage = () => {
   return (
     <>

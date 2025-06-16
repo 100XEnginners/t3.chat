@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    console.log(env.STRIPE_SECRET_KEY)
     try {
         const session = await auth();
         if (!session?.user?.id) {
