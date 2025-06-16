@@ -23,17 +23,17 @@ export async function POST(req: NextRequest) {
     const { success, limit, reset, remaining } = await ratelimit.limit(ip);
 
     const headers = {
-      "X-RateLimit-Limit": limit.toString(),
-      "X-RateLimit-Remaining": remaining.toString(),
-      "X-RateLimit-Reset": reset.toString(),
+        "X-RateLimit-Limit": limit.toString(),
+        "X-RateLimit-Remaining": remaining.toString(),
+        "X-RateLimit-Reset": reset.toString(),
     };
 
     if (!success) {
-      console.log(`Rate limit exceeded for IP ${ip}. Remaining: ${remaining}`);
-      return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
-        { status: 429, headers },
-      );
+        console.log(`Rate limit exceeded for IP ${ip}. Remaining: ${remaining}`);
+        return NextResponse.json(
+            { error: "Too many requests. Please try again later." },
+            { status: 429, headers },
+        );
     }
 
     console.log(env.STRIPE_SECRET_KEY)
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
                 {
                     price_data: {
                         currency: 'usd',
-                        recurring:{
+                        recurring: {
                             interval: 'month',
                         },
                         product_data: {

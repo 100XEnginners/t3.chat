@@ -42,7 +42,16 @@ export default async function SubscriptionPage() {
           {/* Left Column - Profile and Shortcuts */}
           <div className="hidden space-y-8 lg:col-span-1 lg:block">
             {/* Profile Section */}
-            <Profile image={user?.image as string} nickname={user?.nickname as string} name={user?.name as string} email={user?.email as string} whatDoYouDo={user?.whatDoYouDo as string} customTraits={user?.customTraits as string[]} about={user?.about as string} plan={user?.plan as string} />
+            <Profile
+              image={user?.image as string}
+              nickname={user?.nickname as string}
+              name={user?.name as string}
+              email={user?.email as string}
+              whatDoYouDo={user?.whatDoYouDo as string}
+              customTraits={user?.customTraits as string[]}
+              about={user?.about as string}
+              plan={user?.plan as string}
+            />
 
             {/* Message Usage */}
             <div className="bg-accent space-y-4 rounded-xl p-4 dark:bg-black">
