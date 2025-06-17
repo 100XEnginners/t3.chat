@@ -102,7 +102,7 @@ model Message {
     chatId String
     chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
     content String
-    role String
+    role MessageRole
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     @@index([chatId])
@@ -125,4 +125,9 @@ enum TransactionStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
 }
