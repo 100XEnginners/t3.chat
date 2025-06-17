@@ -4,7 +4,7 @@ import { useBlur } from "@/contexts/blur-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-export const Profile = ({ image }: { image: string }) => {
+export const Profile = ({ image, nickname, name, email, whatDoYouDo, customTraits, about, plan }: { image: string, nickname: string, name: string, email: string, whatDoYouDo: string, customTraits: string[], about: string, plan: string }) => {
   const { isBlurred } = useBlur();
   console.log("isBlurred in profile:", isBlurred);
   return (
@@ -27,11 +27,28 @@ export const Profile = ({ image }: { image: string }) => {
       </div>
       <div className="space-y-2 text-center">
         <h1 className="text-foreground text-2xl font-bold">
-          Aman Kumar Bairagi
+          {nickname || name}
         </h1>
-        <p className="text-muted-foreground">amanbairagi1089@gmail.com</p>
-        <Badge variant="secondary" className="bg-muted text-muted-foreground">
-          Free Plan
+        <p className="text-muted-foreground">{email}</p>
+        <div className="flex items-center justify-center gap-2">
+          {whatDoYouDo && (
+            <Badge variant="secondary" className="bg-muted text-muted-foreground">
+              {whatDoYouDo}
+            </Badge>
+          )}
+          {customTraits.length > 0 && (
+            <Badge variant="secondary" className="bg-muted text-muted-foreground">
+              {customTraits.join(", ")}
+            </Badge>
+          )}
+          {about && (
+            <Badge variant="secondary" className="bg-muted text-muted-foreground">
+              {about}
+            </Badge>
+          )}
+        </div>
+        <Badge variant="secondary" className="text-white bg-pink-600">
+          {plan}
         </Badge>
       </div>
     </div>

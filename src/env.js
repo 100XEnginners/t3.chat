@@ -20,7 +20,15 @@ export const env = createEnv({
       TYPEGPT_API_KEY: z.string(),
       SECRURE_AUTH_SECRET: z.string(),
       WEBHOOK_URL: z.string().url(),
-      TYPEGPT_API_URL: z.string().url()
+      TYPEGPT_API_URL: z.string().url(),
+      TURNSTILE_SITE_KEY: z.string(),
+      TURNSTILE_SITE_SECRET: z.string(),
+      STRIPE_SECRET_KEY: z.string(),
+      STRIPE_WEBHOOK_SECRET: z.string(),
+      MAIL_APP_USER: z.string(),
+      MAIL_APP_PASSWORD: z.string(),
+      UPSTASH_REDIS_REST_URL: z.string().url(),
+      UPSTASH_REDIS_REST_TOKEN: z.string(),
   },
 
   /**
@@ -46,6 +54,14 @@ export const env = createEnv({
     SECRURE_AUTH_SECRET: process.env.SECRURE_AUTH_SECRET,
     WEBHOOK_URL: process.env.WEBHOOK_URL,
     TYPEGPT_API_URL: process.env.TYPEGPT_API_URL,
+    TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
+    TURNSTILE_SITE_SECRET: process.env.TURNSTILE_SITE_SECRET,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    MAIL_APP_USER: process.env.MAIL_APP_USER,
+    MAIL_APP_PASSWORD: process.env.MAIL_APP_PASSWORD,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

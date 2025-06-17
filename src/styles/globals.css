@@ -369,3 +369,11 @@ html.boring-theme.dark {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+::selection {
+  background-color: var(--primary);
+}
+
+.dark::selection {
+  background-color: var(--accent);
+}

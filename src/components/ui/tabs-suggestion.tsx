@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { Sparkles, Search, Code, BookOpen } from "lucide-react";
 
-const TabsSuggestion = () => {
+const TabsSuggestion = ({
+  suggestedInput,
+  setSuggestedInput,
+}: {
+  suggestedInput: any;
+  setSuggestedInput: any;
+}) => {
   const [activeTab, setActiveTab] = useState("create");
 
   const tabs = [
@@ -79,6 +85,11 @@ const TabsSuggestion = () => {
           {activeTabData?.content.map((item, index) => (
             <div
               key={index}
+              onClick={() => {
+                if (suggestedInput || suggestedInput === "") {
+                  setSuggestedInput(item);
+                }
+              }}
               className="bg-muted/80 hover:bg-accent/80 group w-full cursor-pointer rounded-xl border py-2 text-center transition-all duration-200"
             >
               <p className="text-card-foreground text-sm leading-relaxed">
