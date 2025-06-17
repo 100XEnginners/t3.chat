@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   ChatCircleDotsIcon,
   MicrophoneIcon,
+  RobotIcon,
   SpinnerGapIcon,
+  UserIcon,
 } from "@phosphor-icons/react";
 import {
   Select,
@@ -104,7 +106,7 @@ const UIInput = () => {
               msg.id === tempMessageId ? { ...msg, content } : msg,
             ),
           );
-        }, 50); 
+        }, 50);
       };
 
       while (true) {
@@ -242,10 +244,10 @@ const UIInput = () => {
   const { selectedFont } = useFont();
 
   return (
-    <div className="flex h-screen max-h-svh w-full">
+    <div className="flex h-[96vh] w-full overflow-hidden">
       <div className="relative flex h-full w-full flex-col">
         {showWelcome && messages.length === 0 ? (
-          <div className="mt-20 flex w-full flex-col">
+          <div className="flex h-full w-full flex-col">
             <div className="flex h-full w-full flex-col items-center justify-center">
               <div className="drop-shadow-primary/60 bg-primary relative mb-6 size-[4.5rem] overflow-hidden rounded-xl drop-shadow-2xl">
                 <div className="bg-foreground absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
@@ -263,21 +265,38 @@ const UIInput = () => {
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 pb-40 md:px-8 lg:px-16">
-            <div className="mx-auto w-full max-w-4xl">
+          <div className="mt-6 flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 md:px-8">
+            <div className="mx-auto h-full w-full max-w-4xl">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`mb-4 flex flex-col gap-2 rounded-lg p-4 ${
-                    message.role === "user"
-                      ? "bg-primary/10 w-full self-end md:w-5/6 lg:w-3/4"
-                      : "bg-muted w-full self-start md:w-5/6 lg:w-3/4"
-                  }`}
+                  className={`mb-8 flex w-fit flex-col gap-2`}
                 >
                   <div className="font-medium">
-                    {message.role === "user" ? "You" : "AI"}
+                    {message.role === "user" ? (
+                      <div className="flex w-fit items-center gap-2 text-base font-semibold">
+                        <div className="bg-accent flex size-6 items-center justify-center rounded-md">
+                          <UserIcon weight="bold" />
+                        </div>
+                        <div>You</div>
+                      </div>
+                    ) : (
+                      <div className="flex w-fit items-center gap-2 text-base font-semibold">
+                        <div className="bg-accent flex size-6 items-center justify-center rounded-md">
+                          <RobotIcon weight="bold" />
+                        </div>
+                        <div>AI</div>
+                      </div>
+                    )}
                   </div>
-                  <div className="prose dark:prose-invert max-w-none">
+                  <div
+                    className={cn(
+                      "prose dark:prose-invert max-w-none rounded-lg border px-4 py-2",
+                      message.role === "user"
+                        ? "bg-primary w-fit max-w-full font-bold"
+                        : "bg-muted w-full",
+                    )}
+                  >
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -385,12 +404,12 @@ const UIInput = () => {
             </div>
           </div>
         )}
-      
-        <div className="bg-muted border-border/20 absolute bottom-0 w-full border-t p-2">
+
+        <div className="bg-muted border-border/20 w-full rounded-2xl border-t p-2">
           <div className="mx-auto w-full max-w-4xl">
             <form
               onSubmit={handleCreateChat}
-              className="bg-accent/30 flex w-full flex-col rounded-xl p-3 pb-6"
+              className="bg-accent/30 flex w-full flex-col rounded-xl p-3 pb-3"
             >
               <Textarea
                 value={query}

@@ -14,20 +14,24 @@ const AskPage = () => {
   }, []);
   return (
     <div className="flex w-full max-w-screen flex-col items-center justify-center gap-4">
-      <div className="flex flex-col items-center gap-4">
-        {!token && <div className="w-full h-screen flex items-center justify-center"><Turnstile
-          sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-          onVerify={(token) => {
-            setToken(token);
-            localStorage.setItem("turnstileToken", token);
-            toast.success("Verification successful", {
-              description: "You can now ask a question",
-            });
-          }}
-          theme="light"
-          size="normal"
-          className="mb-4"
-        /></div>} 
+      <div className="flex w-full flex-col items-center gap-4">
+        {!token && (
+          <div className="flex h-screen w-full items-center justify-center">
+            <Turnstile
+              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+              onVerify={(token) => {
+                setToken(token);
+                localStorage.setItem("turnstileToken", token);
+                toast.success("Verification successful", {
+                  description: "You can now ask a question",
+                });
+              }}
+              theme="light"
+              size="normal"
+              className="mb-4"
+            />
+          </div>
+        )}
         {token && <UIInput />}
       </div>
     </div>

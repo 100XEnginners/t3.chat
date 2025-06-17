@@ -58,13 +58,11 @@ const Chat = () => {
     scrollToBottom();
   }, [messages]);
 
-
   const saveChat = api.chat.createChat.useMutation({
     onError: (error) => {
       console.error("Error saving chat:", error);
     },
   });
-
 
   const processStream = async (response: Response, userMessage: string) => {
     if (!response.ok) {
@@ -208,7 +206,6 @@ const Chat = () => {
     }
   };
 
-
   useEffect(() => {
     const query = localStorage.getItem("chatQuery");
     if (query) {
@@ -218,9 +215,8 @@ const Chat = () => {
   }, []);
 
   return (
-    <div className="h-full">
-      <div className="relative flex h-full w-full flex-col">
-
+    <div className="h-[96vh] w-full">
+      <div className="relative flex h-full w-full flex-col border">
         <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-40 md:px-8 lg:px-16">
           <div className="mx-auto w-full max-w-4xl py-4">
             {messages.length === 0 ? (
@@ -232,11 +228,7 @@ const Chat = () => {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`mb-4 flex flex-col gap-2 rounded-lg p-4 ${
-                      message.role === "user"
-                        ? "bg-primary/10 w-full self-end md:w-5/6 lg:w-3/4"
-                        : "bg-muted w-full self-start md:w-5/6 lg:w-3/4"
-                    }`}
+                    className={`mb-8 flex w-fit flex-col gap-2`}
                   >
                     <div className="font-medium">
                       {message.role === "user" ? "You" : "AI"}
