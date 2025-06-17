@@ -6,23 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { MicrophoneIcon } from "@phosphor-icons/react";
 import { useParams } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/ssr";
 import ReactMarkdown from "react-markdown";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import remarkGfm from "remark-gfm";
 import { Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { api } from "@/trpc/react";
 import { ModelSelector } from "@/components/ui/model-selector";
 import { DEFAULT_MODEL_ID } from "@/models/constants";
 
@@ -57,12 +47,6 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const saveChat = api.chat.createChat.useMutation({
-    onError: (error) => {
-      console.error("Error saving chat:", error);
-    },
-  });
 
   const processStream = async (response: Response, userMessage: string) => {
     if (!response.ok) {
@@ -147,10 +131,6 @@ const Chat = () => {
       }
 
       console.log("Saving chat to database:", userMessage, accumulatedContent);
-      saveChat.mutate({
-        message: userMessage,
-        model: model,
-      });
     } catch (error) {
       console.error("Error processing stream:", error);
     } finally {

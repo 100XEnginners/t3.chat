@@ -2,7 +2,7 @@ import { env } from "@/env";
 import { auth } from "@/server/auth";
 import { fetchChatCompletion } from "@/models/service";
 import { DEFAULT_MODEL_ID, getModelById } from "@/models/constants";
-
+import { db } from "@/server/db";
 interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
@@ -11,6 +11,7 @@ interface ChatMessage {
 interface TypeGPTPayload {
   messages: ChatMessage[];
   model?: string;
+  chatId: string;
 }
 
 interface TypeGPTErrorResponse {
@@ -30,8 +31,17 @@ export async function POST(req: Request): Promise<Response> {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { messages, model = DEFAULT_MODEL_ID } =
+    const { messages, model = DEFAULT_MODEL_ID, chatId } =
       (await req.json()) as TypeGPTPayload;
+
+    // Save user message
+    await db.message.create({
+      data: {
+        chatId,
+        content: messages[messages.length - 1]?.content ?? "",
+        role: "USER",
+      },
+    });
 
     const modelInfo = getModelById(model);
     if (!modelInfo) {
@@ -50,6 +60,8 @@ export async function POST(req: Request): Promise<Response> {
     const writer = writable.getWriter();
 
     void (async () => {
+      let accumulatedContent = "";
+      
       try {
         const response = await fetchChatCompletion({
           modelId: model,
@@ -89,9 +101,51 @@ export async function POST(req: Request): Promise<Response> {
             const { done, value } = await reader.read();
 
             if (done) {
+              // Save AI message to database after stream completes
+              if (accumulatedContent.trim()) {
+                await db.message.create({
+                  data: {
+                    chatId,
+                    content: accumulatedContent,
+                    role: "ASSISTANT",
+                  },
+                });
+              }
+              
               await writer.write(encoder.encode("data: [DONE]\n\n"));
               await writer.close();
               break;
+            }
+
+            // Accumulate content for database storage
+            const chunk = new TextDecoder().decode(value);
+            const lines = chunk.split("\n");
+            
+            for (const line of lines) {
+              if (line.trim() === "") continue;
+              
+              if (line.startsWith("data: ")) {
+                const data = line.substring(6);
+                
+                if (data === "[DONE]") continue;
+                
+                try {
+                  const parsedData = JSON.parse(data) as {
+                    choices?: Array<{
+                      delta?: {
+                        content?: string;
+                      };
+                    }>;
+                  };
+                  
+                  const content = parsedData.choices?.[0]?.delta?.content;
+                  if (content) {
+                    accumulatedContent += content;
+                  }
+                } catch (e) {
+                  // Ignore parsing errors for non-JSON lines
+                }
+              }
             }
 
             await writer.write(value);
@@ -111,7 +165,6 @@ export async function POST(req: Request): Promise<Response> {
         await writer.close();
       }
     })();
-
 
     return new Response(readable, { headers });
   } catch (error) {

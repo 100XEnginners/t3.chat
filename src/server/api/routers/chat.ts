@@ -1,33 +1,133 @@
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import { z } from "zod";
-import { env } from "@/env";
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "@/server/api/trpc";
-import axios from "axios";
-import { fetchChatCompletion } from "@/models/service";
-import { DEFAULT_MODEL_ID } from "@/models/constants";
-
-
-interface ChatCompletionResponse {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
-}
 
 export const chatRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ message: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.message}`,
-      };
-    }),
   createChat: protectedProcedure
-    .input(z.object({ message: z.string(), model: z.string() }))
+    .mutation(async ({ ctx }) => {
+      if (!ctx.session.user) {
+        return {
+          message: "Unauthorised access",
+          success: false,
+        };
+      }
+
+      try {
+        const newChat = await db.chat.create({
+          data:{
+            userId: ctx.session.user.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+
+        return {
+          message: "Chat created successfully",
+          success: true,
+          chatId: newChat.id,
+        };
+      } catch (error) {
+        console.log(error);
+        return {
+          message: "Something went wrong. Please try again.",
+          success: false,
+        };
+      }
+    }),
+
+  getAllChats: protectedProcedure.query(async ({ ctx }) => {
+
+    if (!ctx.session.user) {
+      return {
+        message: "Unauthorised access",
+        success: false,
+        chats: [],
+      };
+    }
+
+    const chats = await db.chat.findMany({
+      where: {
+        userId: ctx.session.user.id,
+      },
+      select: {
+        id: true,
+        messages: {
+          select: {
+            content: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    return chats;
+  }),
+
+  getChatMessages: protectedProcedure
+    .input(z.object({
+      chatId: z.string(),
+    }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          message: "Unauthorised access",
+          success: false,
+          messages: [],
+        };
+      }
+
+      try {
+        // Verify the chat belongs to the user
+        const chat = await db.chat.findFirst({
+          where: {
+            id: input.chatId,
+            userId: ctx.session.user.id,
+          },
+          include: {
+            messages: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+          },
+        });
+
+        if (!chat) {
+          return {
+            message: "Chat not found or access denied",
+            success: false,
+            messages: [],
+          };
+        }
+
+        return {
+          message: "Messages retrieved successfully",
+          success: true,
+          messages: chat.messages.map((message) => ({
+            id: message.id,
+            content: message.content,
+            role: message.role,
+            createdAt: message.createdAt,
+          })),
+        };
+      } catch (error) {
+        console.error("Error getting messages:", error);
+        return {
+          message: "Something went wrong. Please try again.",
+          success: false,
+          messages: [],
+        };
+      }
+    }),
+
+  saveMessage: protectedProcedure
+    .input(z.object({
+      chatId: z.string(),
+      content: z.string(),
+      role: z.enum(["USER", "ASSISTANT"]),
+    }))
     .mutation(async ({ ctx, input }) => {
       if (!ctx.session.user) {
         return {
@@ -37,29 +137,44 @@ export const chatRouter = createTRPCRouter({
       }
 
       try {
-
-        const response = await fetchChatCompletion({
-          modelId: input.model ?? DEFAULT_MODEL_ID,
-          messages: [{ role: "user", content: input.message }],
-          stream: false,
-          fallbackToDefaultModel: true,
+        // Verify the chat belongs to the user
+        const chat = await db.chat.findFirst({
+          where: {
+            id: input.chatId,
+            userId: ctx.session.user.id,
+          },
         });
 
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        if (!chat) {
+          return {
+            message: "Chat not found or access denied",
+            success: false,
+          };
         }
 
-        const data = (await response.json()) as ChatCompletionResponse;
-        const message = data.choices?.[0]?.message?.content ?? "No response";
+        const message = await db.message.create({
+          data: {
+            chatId: input.chatId,
+            content: input.content,
+            role: input.role,
+          },
+        });
+
+        // Update chat's updatedAt timestamp
+        await db.chat.update({
+          where: { id: input.chatId },
+          data: { updatedAt: new Date() },
+        });
 
         return {
-          message,
+          message: "Message saved successfully",
           success: true,
+          messageId: message.id,
         };
       } catch (error) {
-        console.log(error);
+        console.error("Error saving message:", error);
         return {
-          message: "Something went wrong. Please try with a different model.",
+          message: "Something went wrong. Please try again.",
           success: false,
         };
       }

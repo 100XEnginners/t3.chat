@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ChatCircleDotsIcon,
   MicrophoneIcon,
@@ -11,18 +10,8 @@ import {
   SpinnerGapIcon,
   UserIcon,
 } from "@phosphor-icons/react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import ReactMarkdown from "react-markdown";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import remarkGfm from "remark-gfm";
 import { Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -63,7 +52,7 @@ const UIInput = () => {
     scrollToBottom();
   }, [messages]);
 
-  const saveChat = api.chat.createChat.useMutation({
+  const createChat = api.chat.createChat.useMutation({
     onError: (error) => {
       console.error("Error saving chat:", error);
     },
@@ -76,6 +65,8 @@ const UIInput = () => {
       return;
     }
 
+    const tempMessageId = `ai-${Date.now()}`;
+
     try {
       const reader = response.body?.getReader();
       if (!reader) {
@@ -83,8 +74,6 @@ const UIInput = () => {
         setIsLoading(false);
         return;
       }
-
-      const tempMessageId = `ai-${Date.now()}`;
 
       setMessages((prev) => [
         ...prev,
@@ -113,6 +102,7 @@ const UIInput = () => {
         const { done, value } = await reader.read();
 
         if (done) {
+          // Final update with complete content
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === tempMessageId
@@ -154,7 +144,21 @@ const UIInput = () => {
                     content?: string;
                   };
                 }>;
+                error?: string;
               };
+
+              // Handle error responses
+              if (parsedData.error) {
+                console.error("Stream error:", parsedData.error);
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === tempMessageId
+                      ? { ...msg, content: `Error: ${parsedData.error}` }
+                      : msg,
+                  ),
+                );
+                break;
+              }
 
               const content = parsedData.choices?.[0]?.delta?.content;
               if (content) {
@@ -171,13 +175,16 @@ const UIInput = () => {
           updateMessage(accumulatedContent);
         }
       }
-
-      saveChat.mutate({
-        message: userMessage,
-        model: model,
-      });
     } catch (error) {
       console.error("Error processing stream:", error);
+      // Update message with error state
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempMessageId
+            ? { ...msg, content: "Error: Failed to process response" }
+            : msg,
+        ),
+      );
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
@@ -211,6 +218,7 @@ const UIInput = () => {
     abortControllerRef.current = new AbortController();
 
     try {
+      const {chatId} = await createChat.mutateAsync();
       setTimeout(() => {
         void (async () => {
           try {
@@ -222,6 +230,7 @@ const UIInput = () => {
               body: JSON.stringify({
                 messages: [{ role: "user", content: currentQuery }],
                 model: model,
+                chatId: chatId,
               }),
               signal: abortControllerRef.current?.signal,
             });
@@ -414,6 +423,12 @@ const UIInput = () => {
               <Textarea
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleCreateChat(e as any);
+                  }
+                }}
                 placeholder="Ask whatever you want to be"
                 className="h-[2rem] resize-none rounded-none border-none bg-transparent px-0 py-1 shadow-none ring-0 focus-visible:ring-0 dark:bg-transparent"
                 disabled={isLoading}

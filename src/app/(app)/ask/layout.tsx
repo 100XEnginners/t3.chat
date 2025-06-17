@@ -8,14 +8,17 @@ import { SelectTheme } from "@/components/ui/theme-toggler";
 import { UIStructure } from "@/components/ui/ui-structure";
 import { SlidersHorizontalIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import { TRPCReactProvider } from "@/trpc/react";
 
 export default function ChatLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <>
+   <TRPCReactProvider> 
       <UIStructure />
       <SidebarInset className="!h-svh p-2">
         <div className="bg-muted/80 relative h-full max-h-svh w-full rounded-xl p-4">
@@ -34,8 +37,9 @@ export default function ChatLayout({
           <div className="mx-auto flex max-h-fit w-full max-w-3xl overflow-y-hidden">
             {children}
           </div>
-        </div>
-      </SidebarInset>
+            </div>
+        </SidebarInset>
+      </TRPCReactProvider>
     </>
   );
 }
