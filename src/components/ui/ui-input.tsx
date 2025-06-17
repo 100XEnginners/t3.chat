@@ -1,6 +1,5 @@
 "use client";
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -19,104 +18,412 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ReactMarkdown from "react-markdown";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import remarkGfm from "remark-gfm";
+import { Geist_Mono } from "next/font/google";
+import { cn } from "@/lib/utils";
 import { api } from "@/trpc/react";
 import TabsSuggestion from "./tabs-suggestion";
 import { useFont } from "@/contexts/font-context";
+import { ModelSelector } from "@/components/ui/model-selector";
+import { DEFAULT_MODEL_ID } from "@/models/constants";
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  preload: true,
+  display: "swap",
+});
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
 
 const UIInput = () => {
   const session = useSession();
-  const [model, setModel] = useState<string>("gpt-3.5-turbo");
+  const [model, setModel] = useState<string>(DEFAULT_MODEL_ID);
   const [query, setQuery] = useState<string>("");
-  const { mutate: createChat, isPending } = api.chat.createChat.useMutation();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleCreateChat = async (e: any) => {
-    e.preventDefault();
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const saveChat = api.chat.createChat.useMutation({
+    onError: (error) => {
+      console.error("Error saving chat:", error);
+    },
+  });
+
+  const processStream = async (response: Response, userMessage: string) => {
+    if (!response.ok) {
+      console.error("Error from API:", response.statusText);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = createChat({ message: query, model: model });
-      console.log(response);
-      setQuery("");
+      const reader = response.body?.getReader();
+      if (!reader) {
+        console.error("No reader available");
+        setIsLoading(false);
+        return;
+      }
+
+      const tempMessageId = `ai-${Date.now()}`;
+
+      setMessages((prev) => [
+        ...prev,
+        { id: tempMessageId, role: "assistant", content: "" },
+      ]);
+
+      let accumulatedContent = "";
+      let buffer = "";
+      let updateTimeout: NodeJS.Timeout | null = null;
+
+      const updateMessage = (content: string) => {
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
+
+        updateTimeout = setTimeout(() => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === tempMessageId ? { ...msg, content } : msg,
+            ),
+          );
+        }, 50); 
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === tempMessageId
+                ? { ...msg, content: accumulatedContent }
+                : msg,
+            ),
+          );
+
+          if (updateTimeout) {
+            clearTimeout(updateTimeout);
+          }
+
+          break;
+        }
+
+        const chunk = new TextDecoder().decode(value);
+
+        buffer += chunk;
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        let hasNewContent = false;
+
+        for (const line of lines) {
+          if (line.trim() === "") continue;
+
+          if (line.startsWith("data: ")) {
+            const data = line.substring(6);
+
+            if (data === "[DONE]") {
+              continue;
+            }
+
+            try {
+              const parsedData = JSON.parse(data) as {
+                choices?: Array<{
+                  delta?: {
+                    content?: string;
+                  };
+                }>;
+              };
+
+              const content = parsedData.choices?.[0]?.delta?.content;
+              if (content) {
+                accumulatedContent += content;
+                hasNewContent = true;
+              }
+            } catch (e) {
+              console.error("Error parsing JSON:", e);
+            }
+          }
+        }
+
+        if (hasNewContent) {
+          updateMessage(accumulatedContent);
+        }
+      }
+
+      saveChat.mutate({
+        message: userMessage,
+        model: model,
+      });
     } catch (error) {
-      console.error("Failed to create chat:", error);
+      console.error("Error processing stream:", error);
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleCreateChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim() || isLoading) return;
+
+    setShowWelcome(false);
+
+    const currentQuery = query.trim();
+
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: currentQuery,
+    };
+
+    setQuery("");
+
+    setMessages((prev) => [...prev, userMessage]);
+
+    setIsLoading(true);
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    abortControllerRef.current = new AbortController();
+
+    try {
+      setTimeout(() => {
+        void (async () => {
+          try {
+            const response = await fetch("/api/ask", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messages: [{ role: "user", content: currentQuery }],
+                model: model,
+              }),
+              signal: abortControllerRef.current?.signal,
+            });
+
+            await processStream(response, currentQuery);
+          } catch (error) {
+            if ((error as Error).name !== "AbortError") {
+              console.error("Error sending message:", error);
+            }
+            setIsLoading(false);
+          }
+        })();
+      }, 0);
+    } catch (error) {
+      console.error("Error preparing request:", error);
+      setIsLoading(false);
     }
   };
 
   const { selectedFont } = useFont();
-  console.log(selectedFont);
 
   return (
-    <div className={`flex h-screen max-h-svh w-full p-4`}>
-      <div className="relative flex h-full w-full flex-col gap-4">
-        <div className="mt-20 flex w-full flex-col">
-          <div className="flex h-full w-full flex-col items-center justify-center">
-            <div className="drop-shadow-primary/60 bg-primary relative mb-6 size-[4.5rem] overflow-hidden rounded-xl drop-shadow-2xl">
-              <div className="bg-foreground absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
-                <ChatCircleDotsIcon className="text-background text-2xl" />
-              </div>
-            </div>
-            <h1 className="text-2xl">
-              Hello{" "}
-              <span className="font-semibold">
-                {session.data?.user.name?.split(" ")[0]},
-              </span>
-            </h1>
-            <p className="text-3xl">How may I help you today?</p>
-            <TabsSuggestion />
-          </div>
-        </div>
-        {/* Fixed Input */}
-        <div className="bg-muted absolute -bottom-2 w-full rounded-2xl p-2">
-          <form
-            onSubmit={handleCreateChat}
-            className="bg-accent/30 flex w-full flex-col rounded-xl p-3 pb-6"
-          >
-            <Textarea
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ask whatever you want to be"
-              className="h-[2rem] resize-none rounded-none border-none bg-transparent px-0 py-1 shadow-none ring-0 focus-visible:ring-0 dark:bg-transparent"
-            />
-            <div className="mt-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="bg-accent flex size-8 items-center justify-center rounded-lg border">
-                  <MicrophoneIcon />
+    <div className="flex h-screen max-h-svh w-full">
+      <div className="relative flex h-full w-full flex-col">
+        {showWelcome && messages.length === 0 ? (
+          <div className="mt-20 flex w-full flex-col">
+            <div className="flex h-full w-full flex-col items-center justify-center">
+              <div className="drop-shadow-primary/60 bg-primary relative mb-6 size-[4.5rem] overflow-hidden rounded-xl drop-shadow-2xl">
+                <div className="bg-foreground absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
+                  <ChatCircleDotsIcon className="text-background text-2xl" />
                 </div>
-                <Select
-                  value={model}
-                  onValueChange={(value) => setModel(value)}
-                >
-                  <SelectTrigger className="bg-accent max-h-8 active:ring-0">
-                    <SelectValue className="h-5" placeholder="Select Model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Models</SelectLabel>
-                      <SelectItem value="gemini-2.0-flash">
-                        Gemini 2.0 Flash
-                      </SelectItem>
-                      <SelectItem value="gpt-3.5-turbo">
-                        GPT 3.5 Turbo
-                      </SelectItem>
-                      <SelectItem value="gpt-4o-mini">GPT 4o Mini</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
               </div>
-              <Button type="submit" className="w-fit" disabled={isPending}>
-                {isPending ? (
-                  <SpinnerGapIcon className="animate-spin" />
-                ) : (
-                  "Send"
-                )}
-              </Button>
-              {isPending && (
-                <div className="absolute top-0 left-0 z-10 h-full w-full bg-black/50">
-                  <div className="flex h-full items-center justify-center">
-                    <SpinnerGapIcon className="animate-spin" />
+              <h1 className="text-2xl">
+                Hello{" "}
+                <span className="font-semibold">
+                  {session.data?.user.name?.split(" ")[0]},
+                </span>
+              </h1>
+              <p className="text-3xl">How may I help you today?</p>
+              <TabsSuggestion />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 pb-40 md:px-8 lg:px-16">
+            <div className="mx-auto w-full max-w-4xl">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`mb-4 flex flex-col gap-2 rounded-lg p-4 ${
+                    message.role === "user"
+                      ? "bg-primary/10 w-full self-end md:w-5/6 lg:w-3/4"
+                      : "bg-muted w-full self-start md:w-5/6 lg:w-3/4"
+                  }`}
+                >
+                  <div className="font-medium">
+                    {message.role === "user" ? "You" : "AI"}
+                  </div>
+                  <div className="prose dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code(props) {
+                          const { children, className, ...rest } = props;
+                          const match = /language-(\w+)/.exec(className ?? "");
+                          const isInline = !match;
+
+                          return isInline ? (
+                            <code
+                              className={cn(
+                                "rounded-sm bg-[#231f2e] px-1 py-0.5 text-zinc-300",
+                                geistMono.className,
+                              )}
+                              {...rest}
+                            >
+                              {children}
+                            </code>
+                          ) : (
+                            <div className="my-4 overflow-hidden rounded-md">
+                              <div className="bg-[#231f2e] px-4 py-2 text-sm text-zinc-400">
+                                {match ? match[1] : "bash"}
+                              </div>
+                              <SyntaxHighlighter
+                                language={match ? match[1] : "bash"}
+                                style={{
+                                  hljs: { background: "#231f2e" },
+                                  "hljs-comment": { color: "#6c7086" },
+                                  "hljs-keyword": { color: "#9d7cd8" },
+                                  "hljs-built_in": { color: "#7aa2f7" },
+                                  "hljs-string": { color: "#c4a7e7" },
+                                  "hljs-variable": { color: "#7dcfff" },
+                                  "hljs-title": { color: "#7aa2f7" },
+                                  "hljs-attr": { color: "#ff9e64" },
+                                  "hljs-symbol": { color: "#bb9af7" },
+                                  "hljs-bullet": { color: "#73daca" },
+                                  "hljs-literal": { color: "#ff9e64" },
+                                  "hljs-number": { color: "#ff9e64" },
+                                  "hljs-regexp": { color: "#b4f9f8" },
+                                  "hljs-meta": { color: "#7dcfff" },
+                                }}
+                                customStyle={{
+                                  background: "#231f2e",
+                                  padding: "1rem",
+                                  margin: 0,
+                                  borderBottomLeftRadius: "0.375rem",
+                                  borderBottomRightRadius: "0.375rem",
+                                  fontSize: "0.9rem",
+                                }}
+                                codeTagProps={{
+                                  className: geistMono.className,
+                                }}
+                                PreTag="div"
+                                showLineNumbers={false}
+                              >
+                                {Array.isArray(children)
+                                  ? children.join("")
+                                  : typeof children === "string"
+                                    ? children
+                                    : ""}
+                              </SyntaxHighlighter>
+                            </div>
+                          );
+                        },
+                        strong: (props) => (
+                          <span className="font-bold">{props.children}</span>
+                        ),
+                        a: (props) => (
+                          <a
+                            className="text-primary underline"
+                            href={props.href}
+                          >
+                            {props.children}
+                          </a>
+                        ),
+                        h1: (props) => (
+                          <h1 className="my-4 text-2xl font-bold">
+                            {props.children}
+                          </h1>
+                        ),
+                        h2: (props) => (
+                          <h2 className="my-3 text-xl font-bold">
+                            {props.children}
+                          </h2>
+                        ),
+                        h3: (props) => (
+                          <h3 className="my-2 text-lg font-bold">
+                            {props.children}
+                          </h3>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
+              ))}
+              {isLoading && (
+                <div className="bg-muted mb-4 flex w-full items-start gap-2 self-start rounded-lg p-4 md:w-5/6 lg:w-3/4">
+                  <div className="font-medium">AI</div>
+                  <SpinnerGapIcon className="h-5 w-5 animate-spin" />
+                </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
-          </form>
+          </div>
+        )}
+      
+        <div className="bg-muted border-border/20 absolute bottom-0 w-full border-t p-2">
+          <div className="mx-auto w-full max-w-4xl">
+            <form
+              onSubmit={handleCreateChat}
+              className="bg-accent/30 flex w-full flex-col rounded-xl p-3 pb-6"
+            >
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Ask whatever you want to be"
+                className="h-[2rem] resize-none rounded-none border-none bg-transparent px-0 py-1 shadow-none ring-0 focus-visible:ring-0 dark:bg-transparent"
+                disabled={isLoading}
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-accent flex size-8 items-center justify-center rounded-lg border">
+                    <MicrophoneIcon />
+                  </div>
+                  <ModelSelector
+                    value={model}
+                    onValueChange={setModel}
+                    disabled={isLoading}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-fit"
+                  disabled={isLoading || !query.trim()}
+                >
+                  {isLoading ? (
+                    <SpinnerGapIcon className="animate-spin" />
+                  ) : (
+                    "Send"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>

@@ -6,7 +6,18 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import axios from "axios";
-  
+import { fetchChatCompletion } from "@/models/service";
+import { DEFAULT_MODEL_ID } from "@/models/constants";
+
+
+interface ChatCompletionResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
 export const chatRouter = createTRPCRouter({
   hello: publicProcedure
     .input(z.object({ message: z.string() }))
@@ -15,40 +26,42 @@ export const chatRouter = createTRPCRouter({
         greeting: `Hello ${input.message}`,
       };
     }),
-  createChat: protectedProcedure.input(z.object({ message: z.string(), model: z.string() })).mutation(async ({ ctx, input }) => {
-    if(!ctx.session.user){
-      return {
-        message: "Unauthorised access",
-        success: false,
+  createChat: protectedProcedure
+    .input(z.object({ message: z.string(), model: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          message: "Unauthorised access",
+          success: false,
+        };
       }
-    }
-    console.log(input, env.TYPEGPT_API_URL, env.TYPEGPT_API_KEY)
-    try {
-      const response = await axios.post(
-        "https://fast.typegpt.net/v1/chat/completions", // Add /chat/completions
-        {
-          model: "gpt-3.5-turbo",
-          messages: [{ role: "user", content: input.message }],
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${env.TYPEGPT_API_KEY}`,
-          },
-        }
-      );
-      console.log(response.data.choices[0].message.content)
 
-      return {
-        message: response.data.choices[0].message.content,
-        success: true,
+      try {
+
+        const response = await fetchChatCompletion({
+          modelId: input.model ?? DEFAULT_MODEL_ID,
+          messages: [{ role: "user", content: input.message }],
+          stream: false,
+          fallbackToDefaultModel: true,
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = (await response.json()) as ChatCompletionResponse;
+        const message = data.choices?.[0]?.message?.content ?? "No response";
+
+        return {
+          message,
+          success: true,
+        };
+      } catch (error) {
+        console.log(error);
+        return {
+          message: "Something went wrong. Please try with a different model.",
+          success: false,
+        };
       }
-    } catch (error) {
-      console.log(error)
-      return {
-        message: "Something went wrong",
-        success: false,
-      }
-    }
-  }),
+    }),
 });
