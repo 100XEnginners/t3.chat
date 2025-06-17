@@ -12,6 +12,8 @@ import {
   CopyIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
+  SpeakerHighIcon,
+  SpeakerXIcon,
 } from "@phosphor-icons/react";
 import ReactMarkdown from "react-markdown";
 import SyntaxHighlighter from "react-syntax-highlighter";
@@ -23,6 +25,9 @@ import TabsSuggestion from "./tabs-suggestion";
 import { useFont } from "@/contexts/font-context";
 import { ModelSelector } from "@/components/ui/model-selector";
 import { DEFAULT_MODEL_ID } from "@/models/constants";
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { useSpeechSynthesis } from 'react-speech-kit';
+import { toast } from "sonner";
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
@@ -40,12 +45,50 @@ interface Message {
 const UIInput = () => {
   const session = useSession();
   const [model, setModel] = useState<string>(DEFAULT_MODEL_ID);
+  const [modeOfChatting, setModeOfChatting] = useState<"text" | "voice">("text");
   const [query, setQuery] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [showWelcome, setShowWelcome] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const welcomeSpokenRef = useRef(false);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
+  const { speak, cancel, speaking, supported: ttsSupported, voices } = useSpeechSynthesis();
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+
+  useEffect(() => {
+    if (!browserSupportsSpeechRecognition) {
+      toast.error("Your browser doesn't support speech recognition.");
+    }
+  }, [browserSupportsSpeechRecognition]);
+
+  useEffect(() => {
+    if (modeOfChatting === "voice" && !ttsSupported) {
+      toast.error("Text-to-speech not supported in your browser");
+      setModeOfChatting("text");
+    }
+  }, [modeOfChatting, ttsSupported]);
+
+  useEffect(() => {
+    if (ttsSupported && voices.length > 0) {
+      const defaultVoice = voices.find(v => v.default) || voices[0];
+      setSelectedVoice(defaultVoice!);
+    }
+  }, [voices, ttsSupported]);
+
+  useEffect(() => {
+    if (listening) {
+      setQuery(transcript);
+    }
+  }, [listening, transcript]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,6 +97,16 @@ const UIInput = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (showWelcome && messages.length === 0 && modeOfChatting === "voice" && ttsSupported && selectedVoice && !welcomeSpokenRef.current) {
+      welcomeSpokenRef.current = true;
+      speak({
+        text: `Hello mate, how may I help you today?`,
+        voice: selectedVoice
+      });
+    }
+  }, [showWelcome, messages.length, modeOfChatting, ttsSupported, selectedVoice, speak]);
 
   const createChat = api.chat.createChat.useMutation({
     onError: (error) => {
@@ -105,7 +158,6 @@ const UIInput = () => {
         const { done, value } = await reader.read();
 
         if (done) {
-          // Final update with complete content
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === tempMessageId
@@ -116,6 +168,13 @@ const UIInput = () => {
 
           if (updateTimeout) {
             clearTimeout(updateTimeout);
+          }
+
+          if (modeOfChatting === "voice" && ttsSupported && selectedVoice) {
+            speak({
+              text: accumulatedContent,
+              voice: selectedVoice
+            });
           }
 
           break;
@@ -150,7 +209,6 @@ const UIInput = () => {
                 error?: string;
               };
 
-              // Handle error responses
               if (parsedData.error) {
                 console.error("Stream error:", parsedData.error);
                 setMessages((prev) =>
@@ -180,7 +238,6 @@ const UIInput = () => {
       }
     } catch (error) {
       console.error("Error processing stream:", error);
-      // Update message with error state
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === tempMessageId
@@ -209,9 +266,7 @@ const UIInput = () => {
     };
 
     setQuery("");
-
     setMessages((prev) => [...prev, userMessage]);
-
     setIsLoading(true);
 
     if (abortControllerRef.current) {
@@ -251,6 +306,29 @@ const UIInput = () => {
       console.error("Error preparing request:", error);
       setIsLoading(false);
     }
+  };
+
+  const handleStartListening = () => {
+    resetTranscript();
+    SpeechRecognition.startListening({ continuous: true });
+    toast.success("Listening...", {
+      description: "Speak now...",
+      duration: 5000,
+    });
+  };
+
+  const handleStopListening = () => {
+    SpeechRecognition.stopListening();
+    toast.success("Stopped listening", {
+      description: "Processing your voice input...",
+    });
+  };
+
+  const toggleMode = () => {
+    if (modeOfChatting === "voice" && speaking) {
+      cancel();
+    }
+    setModeOfChatting(modeOfChatting === "text" ? "voice" : "text");
   };
 
   const { selectedFont } = useFont();
@@ -406,16 +484,37 @@ const UIInput = () => {
                   </div>
                   <div className="font-medium">
                     {message.role === "assistant" && (
-                      <div className="flex w-fit items-center text-base font-semibold">
-                        <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                      <div className="flex w-fit items-center gap-2 text-base font-semibold">
+                        <button className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
                           <ThumbsUpIcon weight="bold" />
-                        </div>
-                        <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                        </button>
+                        <button className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
                           <ThumbsDownIcon weight="bold" />
-                        </div>
-                        <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                        </button>
+                        <button className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
                           <CopyIcon weight="bold" />
-                        </div>
+                        </button>
+                        {modeOfChatting === "voice" && (
+                          <button 
+                            className="hover:bg-accent flex size-7 items-center justify-center rounded-lg"
+                            onClick={() => {
+                              if (speaking) {
+                                cancel();
+                              } else if (ttsSupported && selectedVoice) {
+                                speak({
+                                  text: message.content,
+                                  voice: selectedVoice
+                                });
+                              }
+                            }}
+                          >
+                            {speaking ? (
+                              <SpeakerXIcon weight="bold" />
+                            ) : (
+                              <SpeakerHighIcon weight="bold" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -447,15 +546,39 @@ const UIInput = () => {
                     void handleCreateChat(e as any);
                   }
                 }}
-                placeholder="Ask whatever you want to be"
+                placeholder={
+                  modeOfChatting === "voice" 
+                    ? "Or type here..." 
+                    : "Ask whatever you want to be"
+                }
                 className="h-[2rem] resize-none rounded-none border-none bg-transparent px-0 py-1 shadow-none ring-0 focus-visible:ring-0 dark:bg-transparent"
                 disabled={isLoading}
               />
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="bg-accent flex size-8 items-center justify-center rounded-lg border">
-                    <MicrophoneIcon />
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleMode}
+                    className="text-xs"
+                  >
+                    {modeOfChatting === "text" ? "Switch to Voice" : "Switch to Text"}
+                  </Button>
+                  {modeOfChatting === "voice" && (
+                    <div className="bg-accent flex size-8 items-center justify-center rounded-lg border">
+                      <button 
+                        onClick={listening ? handleStopListening : handleStartListening}
+                        disabled={!browserSupportsSpeechRecognition}
+                      >
+                        <MicrophoneIcon 
+                          weight="bold"  
+                          className={`text-foreground size-4 hover:text-primary cursor-pointer ${
+                            listening ? "text-red-500 animate-pulse" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
                   <ModelSelector
                     value={model}
                     onValueChange={setModel}

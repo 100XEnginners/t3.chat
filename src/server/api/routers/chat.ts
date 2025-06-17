@@ -56,6 +56,7 @@ export const chatRouter = createTRPCRouter({
             content: true,
           },
         },
+        isSaved: true,
       },
       orderBy: {
         updatedAt: "desc",
@@ -173,6 +174,138 @@ export const chatRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error saving message:", error);
+        return {
+          message: "Something went wrong. Please try again.",
+          success: false,
+        };
+      }
+    }),
+    saveChat: protectedProcedure
+    .input(z.object({
+      chatId: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          message: "Unauthorised access", 
+        }
+      }
+
+      try {
+        const chat = await db.chat.findFirst({
+          where: {
+            id: input.chatId,
+            userId: ctx.session.user.id,
+          },
+        });
+
+        console.log(chat);
+
+        if (!chat) {
+          return {
+            message: "Chat not found or access denied",
+            success: false,
+          };
+        }
+
+        await db.chat.update({
+          where: { id: input.chatId },
+          data: { isSaved: true },
+        });
+
+        return {
+          message: "Chat saved successfully",
+          success: true,
+        };
+      } catch (error) {
+        console.error("Error saving chat:", error);
+        return {  
+          message: "Something went wrong. Please try again.",
+          success: false,
+        };
+      }
+    }),
+    removeFromSaved: protectedProcedure
+    .input(z.object({
+      chatId: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          message: "Unauthorised access",
+          success: false,
+        }
+      }
+
+      try {
+        const chat = await db.chat.findFirst({
+          where: {
+            id: input.chatId,
+            userId: ctx.session.user.id,
+          },
+        });
+
+        if (!chat) {
+          return {
+            message: "Chat not found or access denied",
+            success: false,
+          };
+        }
+
+        await db.chat.update({
+          where: { id: input.chatId },
+          data: { isSaved: false },
+        });
+
+        return {
+          message: "Chat removed from saved successfully",
+          success: true,
+        };
+      } catch (error) {
+        console.error("Error removing chat from saved:", error);
+        return {
+          message: "Something went wrong. Please try again.",
+          success: false,
+        };
+      }
+    }),
+    deleteChat: protectedProcedure
+    .input(z.object({
+      chatId: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          message: "Unauthorised access",
+          success: false,
+        }
+      }
+
+      try {
+        const chat = await db.chat.findFirst({
+          where: {
+            id: input.chatId,
+            userId: ctx.session.user.id,
+          },
+        });
+
+        if (!chat) {
+          return {
+            message: "Chat not found or access denied",
+            success: false,
+          };
+        }
+
+        await db.chat.delete({
+          where: { id: input.chatId },
+        });
+
+        return {
+          message: "Chat deleted successfully",
+          success: true,
+        };
+      } catch (error) {
+        console.error("Error deleting chat:", error);
         return {
           message: "Something went wrong. Please try again.",
           success: false,

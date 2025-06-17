@@ -17,7 +17,15 @@ import { api } from "@/trpc/react";
 import { useState } from "react";
 import { useEffect } from "react";
 import { Input } from "./input";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { DotsThreeVertical, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { Separator } from "./separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 const giest = Geist({
   display: "swap",
@@ -27,6 +35,7 @@ const giest = Geist({
 interface Chat {
   id: string;
   updatedAt: Date;
+  isSaved: boolean;
   userId: string;
   messages: {
     content: string;
@@ -36,13 +45,51 @@ interface Chat {
 export function UIStructure() {
   const [chats, setChats] = useState<Chat[]>([]);
   const { data: chatsData } = api.chat.getAllChats.useQuery();
-
+  const saveChat = api.chat.saveChat.useMutation();
+  const removeFromSaved = api.chat.removeFromSaved.useMutation();
+  const deleteChat = api.chat.deleteChat.useMutation();
+  
   useEffect(() => {
     if (chatsData) {
       setChats(chatsData as unknown as Chat[]);
     }
   }, [chatsData]);
-  return (
+
+  console.log(chats);
+
+  const handleSaveChat = (chatId: string) => {
+    try {
+      saveChat.mutate({ chatId: chatId });
+      toast.success("Chat saved successfully");
+      setChats(chats.map((chat) => chat.id === chatId ? { ...chat, isSaved: true } : chat));
+    } catch (error) {
+      console.error("Error saving chat:", error);
+    }
+  };
+
+  const handleRemoveFromSaved = (chatId: string) => {
+
+    try {
+      removeFromSaved.mutate({ chatId: chatId });
+      toast.success("Chat removed from saved successfully");
+      setChats(chats.map((chat) => chat.id === chatId ? { ...chat, isSaved: false } : chat));
+    } catch (error) {
+      console.error("Error removing chat from saved:", error);
+    }
+  };
+
+  const handleDeleteChat = (chatId: string) => {
+
+    try {
+      deleteChat.mutate({ chatId: chatId });
+      toast.success("Chat deleted successfully");
+      setChats(chats.filter((chat) => chat.id !== chatId));
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+    }
+  };
+
+    return (
     <Sidebar className={`py-2 pl-2`}>
       <SidebarContent className="rounded-2xl">
         <SidebarGroup className="flex flex-col gap-8 pt-3">
@@ -74,16 +121,63 @@ export function UIStructure() {
                 variant="secondary"
                 className="text-foreground flex items-center gap-2 rounded-lg"
               >
-                <span className="font-semibold">Chats</span>
+                <span className="font-semibold">Saved Chats</span>
               </Badge>
             </SidebarGroupLabel>
             <SidebarMenu className="mt-2 p-0">
-              {chats?.map((chat: Chat) => (
+              {chats?.filter((chat: Chat) => chat.isSaved).map((chat: Chat) => (
                 <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton asChild>
+                    <div className="flex items-center justify-between w-full">    
                     <a href={`/ask/${chat.id}`}>
-                      <span>{chat.messages[0]?.content}...</span>
+                      <span>{chat.messages[0]?.content.slice(0, 20)}...</span>
                     </a>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <DotsThreeVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleRemoveFromSaved(chat.id)}>Remove from Saved</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            <Separator className="my-2" />
+            <SidebarGroupLabel className="p-0">
+              <Badge
+                variant="secondary"
+                className="text-foreground flex items-center gap-2 rounded-lg"
+              >
+                <span className="font-semibold">Recent Chats</span>
+              </Badge>
+            </SidebarGroupLabel>
+
+            <SidebarMenu className="mt-2 p-0 w-full">
+              {chats?.filter((chat: Chat) => !chat.isSaved).map((chat: Chat) => (
+                <SidebarMenuItem key={chat.id}>
+                  <SidebarMenuButton asChild>
+                      <div className="flex items-center justify-between w-full">
+                    <a href={`/ask/${chat.id}`}>
+                        <span>{chat.messages[0]?.content.slice(0, 20)}...</span>
+                      <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <DotsThreeVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleSaveChat(chat.id)}>Add to Saved</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeleteChat(chat.id)}>Delete</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                    </a>
+                      </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
