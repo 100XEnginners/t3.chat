@@ -57,7 +57,7 @@ export async function saveChat(messages: Message[]) {
             id: message.id,
             chatId: chat.id,
             content: message.content,
-            role: message.role,
+            role: message.role === "user" ? "USER" : "ASSISTANT",
           },
         });
       }

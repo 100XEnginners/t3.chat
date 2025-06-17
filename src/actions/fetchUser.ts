@@ -7,7 +7,21 @@ export async function FetchUser() {
         return null
     }
     const user = await db.user.findUnique({
-        where: { id: session.user.id }
+        where: { id: session.user.id, },
+        select: {
+            name: true,
+            email: true,
+            image: true,
+            nickname: true,
+            about: true,
+            whatDoYouDo: true,
+            customTraits: true,
+            subscription: {
+                select: {
+                    plan: true,
+                }
+            }
+        }
     })
 
     return user

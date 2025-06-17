@@ -35,6 +35,36 @@ export const chatRouter = createTRPCRouter({
       }
     }),
 
+  getAllChats: protectedProcedure.query(async ({ ctx }) => {
+
+    if (!ctx.session.user) {
+      return {
+        message: "Unauthorised access",
+        success: false,
+        chats: [],
+      };
+    }
+
+    const chats = await db.chat.findMany({
+      where: {
+        userId: ctx.session.user.id,
+      },
+      select: {
+        id: true,
+        messages: {
+          select: {
+            content: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    });
+
+    return chats;
+  }),
+
   getChatMessages: protectedProcedure
     .input(z.object({
       chatId: z.string(),

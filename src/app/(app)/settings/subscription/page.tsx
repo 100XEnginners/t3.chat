@@ -50,7 +50,7 @@ export default async function SubscriptionPage() {
               whatDoYouDo={user?.whatDoYouDo as string}
               customTraits={user?.customTraits as string[]}
               about={user?.about as string}
-              plan={user?.plan as string}
+              plan={user?.subscription?.plan as string}
             />
 
             {/* Message Usage */}

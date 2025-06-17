@@ -1,3 +1,4 @@
+"use client";
 import {
   Sidebar,
   SidebarContent,
@@ -12,32 +13,34 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Geist } from "next/font/google";
 import { Button } from "./button";
+import { api } from "@/trpc/react";
+import { useState } from "react";
+import { useEffect } from "react";
 
-const items = [
-  {
-    title: "Chat-1",
-    url: "#",
-  },
-  {
-    title: "Chat-2",
-    url: "#",
-  },
-  {
-    title: "Chat-3",
-    url: "#",
-  },
-  {
-    title: "Chat-4",
-    url: "#",
-  },
-];
 
 const giest = Geist({
   display: "swap",
   subsets: ["latin"],
 });
 
+interface Chat {
+  id: string;
+  updatedAt: Date;
+  userId: string;
+  messages: {
+    content: string;
+  }[];
+}
+
 export function UIStructure() {
+  const [chats, setChats] = useState<Chat[]>([]);
+  const { data: chatsData } = api.chat.getAllChats.useQuery();
+
+  useEffect(() => {
+    if (chatsData) {
+      setChats(chatsData as unknown as  Chat[]);
+    }
+  }, [chatsData]);
   return (
     <Sidebar className={`py-2 pl-2`}>
       <SidebarContent className="rounded-2xl">
@@ -67,11 +70,11 @@ export function UIStructure() {
               </Badge>
             </SidebarGroupLabel>
             <SidebarMenu className="mt-2 p-0">
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {chats?.map((chat: Chat) => (
+                <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <span>{item.title}</span>
+                    <a href={`/ask/${chat.id}`}>
+                      <span>{chat.messages[0]?.content}...</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
