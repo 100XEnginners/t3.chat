@@ -16,7 +16,8 @@ import { Button } from "./button";
 import { api } from "@/trpc/react";
 import { useState } from "react";
 import { useEffect } from "react";
-
+import { Input } from "./input";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 
 const giest = Geist({
   display: "swap",
@@ -38,7 +39,7 @@ export function UIStructure() {
 
   useEffect(() => {
     if (chatsData) {
-      setChats(chatsData as unknown as  Chat[]);
+      setChats(chatsData as unknown as Chat[]);
     }
   }, [chatsData]);
   return (
@@ -61,6 +62,13 @@ export function UIStructure() {
             </div>
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-4">
+            <div className="mb-4 flex items-center gap-2 border-b">
+              <MagnifyingGlassIcon className="text-foreground" weight="bold" />
+              <Input
+                placeholder="Search for chats"
+                className="rounded-none border-none bg-transparent px-0 py-1 shadow-none ring-0 focus-visible:ring-0 dark:bg-transparent"
+              />
+            </div>
             <SidebarGroupLabel className="p-0">
               <Badge
                 variant="secondary"

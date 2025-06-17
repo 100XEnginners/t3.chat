@@ -4,7 +4,14 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { MicrophoneIcon } from "@phosphor-icons/react";
+import {
+  CopyIcon,
+  MicrophoneIcon,
+  RobotIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
+  UserIcon,
+} from "@phosphor-icons/react";
 import { useParams } from "next/navigation";
 
 import { SpinnerGapIcon } from "@phosphor-icons/react/dist/ssr";
@@ -196,152 +203,182 @@ const Chat = () => {
 
   return (
     <div className="h-[96vh] w-full">
-      <div className="relative flex h-full w-full flex-col border">
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-40 md:px-8 lg:px-16">
+      <div className="relative flex h-full w-full flex-col">
+        <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-40 md:px-4">
           <div className="mx-auto w-full max-w-4xl py-4">
             {messages.length === 0 ? (
               <div className="text-muted-foreground flex h-[50vh] items-center justify-center">
                 Start a conversation by typing a message below
               </div>
             ) : (
-              <>
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`mb-8 flex w-fit flex-col gap-2`}
-                  >
-                    <div className="font-medium">
-                      {message.role === "user" ? "You" : "AI"}
-                    </div>
-                    <div className="prose dark:prose-invert max-w-none">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code(props) {
-                            const { children, className } = props;
-                            const match = /language-(\w+)/.exec(
-                              className ?? "",
-                            );
-                            const isInline = !match;
+              <div className="no-scrollbar mt-6 flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-10 md:px-8">
+                <div className="mx-auto h-full w-full max-w-4xl">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`mb-8 flex w-fit flex-col gap-2`}
+                    >
+                      <div className="font-medium">
+                        {message.role === "user" ? (
+                          <div className="flex w-fit items-center gap-2 text-base font-semibold">
+                            <div className="bg-accent flex size-6 items-center justify-center rounded-md">
+                              <UserIcon weight="bold" />
+                            </div>
+                            <div>You</div>
+                          </div>
+                        ) : (
+                          <div className="flex w-fit items-center gap-2 text-base font-semibold">
+                            <div className="bg-accent flex size-6 items-center justify-center rounded-md">
+                              <RobotIcon weight="bold" />
+                            </div>
+                            <div>AI</div>
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={cn(
+                          "prose dark:prose-invert max-w-none rounded-lg px-4 py-2",
+                          message.role === "user"
+                            ? "bg-primary w-fit max-w-full font-bold"
+                            : "bg-muted w-full border",
+                        )}
+                      >
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            code(props) {
+                              const { children, className, ...rest } = props;
+                              const match = /language-(\w+)/.exec(
+                                className ?? "",
+                              );
+                              const isInline = !match;
 
-                            return isInline ? (
-                              <code
-                                className={cn(
-                                  "rounded-sm bg-[#231f2e] px-1 py-0.5 text-zinc-300",
-                                  geistMono.className,
-                                )}
-                              >
-                                {children}
-                              </code>
-                            ) : (
-                              <div className="my-4 overflow-hidden rounded-md">
-                                <div className="bg-[#231f2e] px-4 py-2 text-sm text-zinc-400">
-                                  {match ? match[1] : "bash"}
-                                </div>
-                                <SyntaxHighlighter
-                                  language={match ? match[1] : "bash"}
-                                  style={{
-                                    hljs: { background: "#231f2e" },
-                                    "hljs-comment": { color: "#6c7086" },
-                                    "hljs-keyword": { color: "#9d7cd8" },
-                                    "hljs-built_in": { color: "#7aa2f7" },
-                                    "hljs-string": { color: "#c4a7e7" },
-                                    "hljs-variable": { color: "#7dcfff" },
-                                    "hljs-title": { color: "#7aa2f7" },
-                                    "hljs-attr": { color: "#ff9e64" },
-                                    "hljs-symbol": { color: "#bb9af7" },
-                                    "hljs-bullet": { color: "#73daca" },
-                                    "hljs-literal": { color: "#ff9e64" },
-                                    "hljs-number": { color: "#ff9e64" },
-                                    "hljs-regexp": { color: "#b4f9f8" },
-                                    "hljs-meta": { color: "#7dcfff" },
-                                  }}
-                                  customStyle={{
-                                    background: "#231f2e",
-                                    padding: "1rem",
-                                    margin: 0,
-                                    borderBottomLeftRadius: "0.375rem",
-                                    borderBottomRightRadius: "0.375rem",
-                                    fontSize: "0.9rem",
-                                  }}
-                                  codeTagProps={{
-                                    className: geistMono.className,
-                                  }}
-                                  PreTag="div"
-                                  showLineNumbers={false}
+                              return isInline ? (
+                                <code
+                                  className={cn(
+                                    "rounded-sm bg-[#231f2e] px-1 py-0.5 text-zinc-300",
+                                    geistMono.className,
+                                  )}
+                                  {...rest}
                                 >
-                                  {Array.isArray(children)
-                                    ? children.join("")
-                                    : typeof children === "string"
-                                      ? children
-                                      : ""}
-                                </SyntaxHighlighter>
-                              </div>
-                            );
-                          },
-                          strong(props) {
-                            return (
+                                  {children}
+                                </code>
+                              ) : (
+                                <div className="my-4 overflow-hidden rounded-md">
+                                  <div className="bg-[#231f2e] px-4 py-2 text-sm text-zinc-400">
+                                    {match ? match[1] : "bash"}
+                                  </div>
+                                  <SyntaxHighlighter
+                                    language={match ? match[1] : "bash"}
+                                    style={{
+                                      hljs: { background: "#231f2e" },
+                                      "hljs-comment": { color: "#6c7086" },
+                                      "hljs-keyword": { color: "#9d7cd8" },
+                                      "hljs-built_in": { color: "#7aa2f7" },
+                                      "hljs-string": { color: "#c4a7e7" },
+                                      "hljs-variable": { color: "#7dcfff" },
+                                      "hljs-title": { color: "#7aa2f7" },
+                                      "hljs-attr": { color: "#ff9e64" },
+                                      "hljs-symbol": { color: "#bb9af7" },
+                                      "hljs-bullet": { color: "#73daca" },
+                                      "hljs-literal": { color: "#ff9e64" },
+                                      "hljs-number": { color: "#ff9e64" },
+                                      "hljs-regexp": { color: "#b4f9f8" },
+                                      "hljs-meta": { color: "#7dcfff" },
+                                    }}
+                                    customStyle={{
+                                      background: "#231f2e",
+                                      padding: "1rem",
+                                      margin: 0,
+                                      borderBottomLeftRadius: "0.375rem",
+                                      borderBottomRightRadius: "0.375rem",
+                                      fontSize: "0.9rem",
+                                    }}
+                                    codeTagProps={{
+                                      className: geistMono.className,
+                                    }}
+                                    PreTag="div"
+                                    showLineNumbers={false}
+                                  >
+                                    {Array.isArray(children)
+                                      ? children.join("")
+                                      : typeof children === "string"
+                                        ? children
+                                        : ""}
+                                  </SyntaxHighlighter>
+                                </div>
+                              );
+                            },
+                            strong: (props) => (
                               <span className="font-bold">
                                 {props.children}
                               </span>
-                            );
-                          },
-                          h1(props) {
-                            return (
-                              <h1 className="my-4 text-2xl font-bold">
-                                {props.children}
-                              </h1>
-                            );
-                          },
-                          h2(props) {
-                            return (
-                              <h2 className="my-3 text-xl font-bold">
-                                {props.children}
-                              </h2>
-                            );
-                          },
-                          h3(props) {
-                            return (
-                              <h3 className="my-2 text-lg font-bold">
-                                {props.children}
-                              </h3>
-                            );
-                          },
-                          a(props) {
-                            return (
+                            ),
+                            a: (props) => (
                               <a
                                 className="text-primary underline"
                                 href={props.href}
                               >
                                 {props.children}
                               </a>
-                            );
-                          },
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                            ),
+                            h1: (props) => (
+                              <h1 className="my-4 text-2xl font-bold">
+                                {props.children}
+                              </h1>
+                            ),
+                            h2: (props) => (
+                              <h2 className="my-3 text-xl font-bold">
+                                {props.children}
+                              </h2>
+                            ),
+                            h3: (props) => (
+                              <h3 className="my-2 text-lg font-bold">
+                                {props.children}
+                              </h3>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                      <div className="font-medium">
+                        {message.role === "assistant" && (
+                          <div className="flex w-fit items-center text-base font-semibold">
+                            <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                              <ThumbsUpIcon weight="bold" />
+                            </div>
+                            <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                              <ThumbsDownIcon weight="bold" />
+                            </div>
+                            <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                              <CopyIcon weight="bold" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="bg-muted mb-4 flex w-full items-start gap-2 self-start rounded-lg p-4 md:w-5/6 lg:w-3/4">
-                    <div className="font-medium">AI</div>
-                    <SpinnerGapIcon className="h-5 w-5 animate-spin" />
-                  </div>
-                )}
-              </>
+                  ))}
+                  {isLoading && (
+                    <div className="bg-muted mb-4 flex w-full items-start gap-2 self-start rounded-lg p-4 md:w-5/6 lg:w-3/4">
+                      <div className="font-medium">AI</div>
+                      <SpinnerGapIcon className="h-5 w-5 animate-spin" />
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
         </div>
 
         {/* Input Form */}
-        <div className="bg-muted border-border/20 absolute bottom-0 w-full border-t p-2">
+        <div className="bg-muted border-border/20 absolute bottom-0 w-full rounded-xl border-t p-2">
           <div className="mx-auto w-full max-w-4xl">
             <form
               onSubmit={handleSubmit}
-              className="bg-accent/30 flex w-full flex-col rounded-xl p-3 pb-6"
+              className="bg-accent/30 flex w-full flex-col rounded-xl p-3 pb-3"
             >
               <Textarea
                 value={input}

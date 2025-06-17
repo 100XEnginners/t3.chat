@@ -9,6 +9,9 @@ import {
   RobotIcon,
   SpinnerGapIcon,
   UserIcon,
+  CopyIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
 } from "@phosphor-icons/react";
 import ReactMarkdown from "react-markdown";
 import SyntaxHighlighter from "react-syntax-highlighter";
@@ -218,7 +221,7 @@ const UIInput = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      const {chatId} = await createChat.mutateAsync();
+      const { chatId } = await createChat.mutateAsync();
       setTimeout(() => {
         void (async () => {
           try {
@@ -274,7 +277,7 @@ const UIInput = () => {
             </div>
           </div>
         ) : (
-          <div className="mt-6 flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 md:px-8">
+          <div className="no-scrollbar mt-6 flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-10 md:px-8">
             <div className="mx-auto h-full w-full max-w-4xl">
               {messages.map((message) => (
                 <div
@@ -300,10 +303,10 @@ const UIInput = () => {
                   </div>
                   <div
                     className={cn(
-                      "prose dark:prose-invert max-w-none rounded-lg border px-4 py-2",
+                      "prose dark:prose-invert max-w-none rounded-lg px-4 py-2",
                       message.role === "user"
                         ? "bg-primary w-fit max-w-full font-bold"
-                        : "bg-muted w-full",
+                        : "bg-muted w-full border",
                     )}
                   >
                     <ReactMarkdown
@@ -400,6 +403,21 @@ const UIInput = () => {
                     >
                       {message.content}
                     </ReactMarkdown>
+                  </div>
+                  <div className="font-medium">
+                    {message.role === "assistant" && (
+                      <div className="flex w-fit items-center text-base font-semibold">
+                        <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                          <ThumbsUpIcon weight="bold" />
+                        </div>
+                        <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                          <ThumbsDownIcon weight="bold" />
+                        </div>
+                        <div className="hover:bg-accent flex size-7 items-center justify-center rounded-lg">
+                          <CopyIcon weight="bold" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
