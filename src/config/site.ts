@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-const TITLE = 'T3chat - An Open-source, user-friendly fast AI response app';
+const TITLE = 'T3chat - An Open-source, user-friendly fast AI response chat app';
 const DESCRIPTION =
   'T3chat is a platform that allows you to chat with AI, support different LLM, respond very fast, user friendly, have customization, cheap.';
 

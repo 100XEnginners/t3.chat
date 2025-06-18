@@ -1,4 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { z } from "zod";
 
@@ -85,6 +85,54 @@ export const chatRouter = createTRPCRouter({
           where: {
             id: input.chatId,
             userId: ctx.session.user.id,
+          },
+          include: {
+            messages: {
+              orderBy: {
+                createdAt: "asc",
+              },
+            },
+          },
+        });
+
+        if (!chat) {
+          return {
+            message: "Chat not found or access denied",
+            success: false,
+            messages: [],
+          };
+        }
+
+        return {
+          message: "Messages retrieved successfully",
+          success: true,
+          messages: chat.messages.map((message) => ({
+            id: message.id,
+            content: message.content,
+            role: message.role,
+            createdAt: message.createdAt,
+          })),
+        };
+      } catch (error) {
+        console.error("Error getting messages:", error);
+        return {
+          message: "Something went wrong. Please try again.",
+          success: false,
+          messages: [],
+        };
+      }
+    }),
+    getChatById: publicProcedure
+    .input(z.object({
+      chatId: z.string(),
+    }))
+    .query(async ({ input }) => {
+
+      try {
+        // Verify the chat belongs to the user
+        const chat = await db.chat.findFirst({
+          where: {
+            id: input.chatId,
           },
           include: {
             messages: {

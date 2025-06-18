@@ -22,6 +22,7 @@ import {
   BookmarkIcon,
   DotsThreeVertical,
   MagnifyingGlassIcon,
+  ShareFatIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import { Separator } from "./separator";
@@ -37,6 +38,7 @@ import { useRouter } from "next/navigation";
 import { T3Chat } from "../svgs/t3chat";
 import type { User } from "@prisma/client";
 import { useSession } from "next-auth/react";
+import { Share, ShareIcon } from "lucide-react";
 
 const giest = Geist({
   display: "swap",
@@ -197,6 +199,20 @@ export function UIStructure() {
                                   className="flex items-center justify-center rounded-md"
                                   onClick={(e) => {
                                     e.preventDefault();
+                                    const shareLink = process.env.NEXT_PUBLIC_APP_URL + `/chat/share/${chat.id}`
+                                    navigator.clipboard.writeText(shareLink)
+                                    toast.success("Share link copied to clipboard")
+                                  }}
+                                >
+                                  <ShareFatIcon
+                                    weight="fill"
+                                    className="hover:text-foreground size-4"
+                                  />
+                                </div>
+                                <div
+                                  className="flex items-center justify-center rounded-md"
+                                  onClick={(e) => {
+                                    e.preventDefault();
                                     handleDeleteChat(chat.id);
                                   }}
                                 >
@@ -259,6 +275,21 @@ export function UIStructure() {
                                 >
                                   <BookmarkIcon
                                     weight={"bold"}
+                                    className="hover:text-foreground size-4"
+                                  />
+                                </div>
+
+                                <div
+                                  className="flex items-center justify-center rounded-md"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const shareLink = process.env.NEXT_PUBLIC_APP_URL + `/chat/share/${chat.id}`
+                                    navigator.clipboard.writeText(shareLink)
+                                    toast.success("Share link copied to clipboard")
+                                  }}
+                                >
+                                  <ShareFatIcon
+                                    weight="fill"
                                     className="hover:text-foreground size-4"
                                   />
                                 </div>

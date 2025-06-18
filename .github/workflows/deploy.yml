@@ -3,7 +3,6 @@ name: Deploy to Production
 on:
   push:
     branches: [ master ]
-  workflow_dispatch:
 
 jobs:
   deploy:
@@ -12,25 +11,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Build the application
         run: bun run build
 
-    deploy:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
+      - name: Docker login
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-        - name: Set up Node.js
-          uses: actions/setup-node@v3
-          with:
-            node-version: 20
-    
+     - name: Build and push 
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/Dockerfile.frontend
+          build-args:
+            - DATABASE_URL=${{ secrets.DATABASE_URL }}
+          push: true
+          tags: t3-chat:${{ github.sha }}
