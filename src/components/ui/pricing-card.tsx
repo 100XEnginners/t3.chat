@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CheckIcon, ArrowRightIcon } from "@radix-ui/react-icons";
 import PricingButton from "./pricing-button";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 
 export interface PricingFeature {
   name: string;
@@ -130,9 +130,9 @@ export function PricingCards({
                         )}
                         onClick={() => {
                           if (tier.name === "Free") {
-                            router.push("/auth");
+                            redirect("https://x.com/10Xpraash");
                           } else if (tier.name === "Enterprise") {
-                            router.push("/feedback");
+                            redirect("https://x.com/10Xpraash");
                           }
                         }}
                       >

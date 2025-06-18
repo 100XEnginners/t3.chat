@@ -1,6 +1,6 @@
 # 𝙏3𝙘𝒉𝙖𝒕
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F100xEnginners%2Ft3dotgg&env=DATABASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,BETTER_AUTH_TRUSTED_ORIGINS,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_REDIRECT_URI,GITHUB_CLIENT_ID,GITHUB_CLIENT_SECRET&envDescription=For%20more%20info%20on%20setting%20up%20your%20API%20keys%2C%20checkout%20the%20Readme%20below&envLink=https%3A%2F%2Fgithub.com%2F100xEnginners%2Ft3dotgg%2Fblob%2Fmain%2FREADME.md&project-name=zero-email&repository-name=zero-email&redirect-url=zero.email&demo-title=Zero&demo-description=An%20open%20source%20email%20app&demo-url=zero.email)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F100xEnginners%2Ft3dotgg&env=DATABASE_URL,BETTER_AUTH_SECRET,BETTER_AUTH_URL,BETTER_AUTH_TRUSTED_ORIGINS,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_REDIRECT_URI,GITHUB_CLIENT_ID,GITHUB_CLIENT_SECRET&envDescription=For%20more%20info%20on%20setting%20up%20your%20API%20keys%2C%20checkout%20the%20Readme%20below&envLink=https%3A%2F%2Fgithub.com%2F100xEnginners%2Ft3dotgg%2Fblob%2Fmain%2FREADME.md&project-name=t3chat&repository-name=t3chat&redirect-url=t3chat&demo-title=T3chat&demo-description=An%20open%20source%20t3chat%20clone&demo-url=t3chat.xyz)
 
 An Open-Source Version of t3.chat.
 

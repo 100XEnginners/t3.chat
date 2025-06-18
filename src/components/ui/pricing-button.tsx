@@ -3,6 +3,7 @@ import axios from "axios";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
@@ -28,16 +29,20 @@ export default function PricingButton({
         amount,
       });
 
+      if(response.status === 429){
+        toast.error("Too Many Request on checkout page, please try again after sometime!")
+      }
       const session = response.data;
       if (!session?.id) throw new Error("No session ID received");
 
       const result = await stripe.redirectToCheckout({ sessionId: session.id });
+      
       if (result.error) {
         throw new Error(result.error.message);
       }
+
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }

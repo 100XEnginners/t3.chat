@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const GetStarted = () => {
   return (
@@ -25,7 +26,9 @@ export const GetStarted = () => {
           <span className="text-muted-foreground">
             We promise , we dont spam with useless mails
           </span>
-          <Button className="h-12 w-40 rounded-xl">Get Started</Button>
+          <Button className="h-12 w-40 rounded-xl">
+            <Link href="/ask">Chat with T3</Link>
+          </Button>
         </div>
       </div>
     </>
