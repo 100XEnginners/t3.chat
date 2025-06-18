@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +27,8 @@ import SpeechRecognition, {
 import { useSpeechSynthesis } from "react-speech-kit";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
-import { WrapText } from "lucide-react";
+import { Globe, Loader2Icon, Paperclip, WrapText } from "lucide-react";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { useParams } from "next/navigation";
 import { api } from "@/trpc/react";
 
 const geistMono = Geist_Mono({
@@ -52,25 +50,43 @@ interface Message {
   content: string;
 }
 
-const Chat = () => {
-  const { data: sessionData } = useSession();
+const Chat = ({ chatId: initialChatId }: { chatId: string }) => {
   const [model, setModel] = useState<string>(DEFAULT_MODEL_ID);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [search, setSearch] = useState<boolean>(false);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const params = useParams();
   const [modeOfChatting, setModeOfChatting] = useState<"text" | "voice">(
     "text",
   );
   const [showWelcome, setShowWelcome] = useState(true);
   const [copied, setCopied] = useState(false);
-  const chatId = params?.chatId as string | undefined;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const welcomeSpokenRef = useRef(false);
   const [isWrapped, setIsWrapped] = useState(false);
   const { resolvedTheme } = useTheme();
   const [query, setQuery] = useState<string>("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [chatId, setChatId] = useState<string>(initialChatId);
+
+  const {data: chatMessages} = api.chat.getChatMessages.useQuery({
+    chatId: chatId,
+  });
+
+  useEffect(() => {
+    setChatId(initialChatId);
+  }, [initialChatId]);
+
+  useEffect(() => {
+    if (chatMessages) {
+      setMessages(chatMessages.messages.map((message) => ({
+        id: message.id,
+        role: message.role === "USER" ? "user" : "assistant",
+        content: message.content,
+      })));
+    }
+  }, [chatMessages]);
 
   const toggleWrap = useCallback(() => {
     setIsWrapped((prev) => !prev);
@@ -156,12 +172,12 @@ const Chat = () => {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log("Stream complete");
+          // console.log("Stream complete");
           break;
         }
 
         const chunk = new TextDecoder().decode(value);
-        console.log("Received chunk:", chunk);
+        // console.log("Received chunk:", chunk);
 
         buffer += chunk;
 
@@ -180,7 +196,7 @@ const Chat = () => {
             }
 
             try {
-              console.log("Parsing JSON:", data);
+              // console.log("Parsing JSON:", data);
               const parsedData = JSON.parse(data) as {
                 choices?: Array<{
                   delta?: {
@@ -191,7 +207,7 @@ const Chat = () => {
 
               const content = parsedData.choices?.[0]?.delta?.content;
               if (content) {
-                console.log("Received content:", content);
+                // console.log("Received content:", content);
                 accumulatedContent += content;
 
                 setMessages((prev) =>
@@ -209,7 +225,7 @@ const Chat = () => {
         }
       }
 
-      console.log("Saving chat to database:", userMessage, accumulatedContent);
+      // console.log("Saving chat to database:", userMessage, accumulatedContent);
     } catch (error) {
       console.error("Error processing stream:", error);
     } finally {
@@ -217,12 +233,6 @@ const Chat = () => {
       abortControllerRef.current = null;
     }
   };
-
-  const createChat = api.chat.createChat.useMutation({
-    onError: (error) => {
-      console.error("Error saving chat:", error);
-    },
-  });
 
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,7 +259,6 @@ const Chat = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      const { chatId } = await createChat.mutateAsync();
       setTimeout(() => {
         void (async () => {
           try {
@@ -339,6 +348,7 @@ const Chat = () => {
         body: JSON.stringify({
           messages: [{ role: "user", content: currentMessage }],
           model: model,
+          chatId: chatId,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -393,14 +403,28 @@ const Chat = () => {
     }
   };
 
+
+  const handleFileInput = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setAttachments((prev) => [...prev, file]);
+      }
+    };
+    fileInput.click();
+  };
+
   return (
     <div className="h-[96vh] w-full">
       <div className="relative flex h-full w-full flex-col">
-        <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-40 md:px-4">
+        <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto px-4 pb-40 md:px-4">
           <div className="mx-auto w-full max-w-4xl py-4">
             {messages.length === 0 ? (
               <div className="text-muted-foreground flex h-[50vh] items-center justify-center">
-                Start a conversation by typing a message below
+                  <Loader2Icon className="animate-spin" />                
               </div>
             ) : (
               <div className="no-scrollbar mt-6 flex h-full w-full flex-1 flex-col gap-4 overflow-y-auto px-4 pt-4 pb-10 md:px-8">
@@ -690,6 +714,17 @@ const Chat = () => {
                     onValueChange={setModel}
                     disabled={isLoading}
                   />
+
+                   {/* Search */}
+                   <Button variant="ghost" size="sm" className={`text-xs ${search ? "bg-primary/60 hover:bg-primary/70" : ""}`} onClick={() => setSearch(!search)}>
+                    <Globe className="size-4" />
+                    Search
+                  </Button>
+
+                  {/* Attachments */}
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={handleFileInput}>
+                    <Paperclip className="size-4" />
+                  </Button>
                 </div>
                 <Button
                   type="submit"

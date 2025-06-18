@@ -31,7 +31,7 @@ import SpeechRecognition, {
 import { useSpeechSynthesis } from "react-speech-kit";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
-import { WrapText } from "lucide-react";
+import { Earth, EarthIcon, Globe, Paperclip, WrapText } from "lucide-react";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 const geistMono = Geist_Mono({
@@ -54,6 +54,8 @@ const UIInput = () => {
     "text",
   );
   const [query, setQuery] = useState<string>("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [search, setSearch] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [showWelcome, setShowWelcome] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -376,6 +378,19 @@ const UIInput = () => {
     }
   };
 
+  const handleFileInput = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setAttachments((prev) => [...prev, file]);
+      }
+    };
+    fileInput.click();
+  };
+
   return (
     <div className="flex h-[96vh] w-full overflow-hidden">
       <div className="relative flex h-full w-full flex-col">
@@ -682,6 +697,16 @@ const UIInput = () => {
                     onValueChange={setModel}
                     disabled={isLoading}
                   />
+                  {/* Search */}
+                  <Button variant="ghost" size="sm" className={`text-xs ${search ? "bg-primary/60 hover:bg-primary/70" : ""}`} onClick={() => setSearch(!search)}>
+                    <Globe className="size-4" />
+                    Search
+                  </Button>
+
+                  {/* Attachments */}
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={handleFileInput}>
+                    <Paperclip className="size-4" />
+                  </Button>
                 </div>
                 <Button
                   type="submit"

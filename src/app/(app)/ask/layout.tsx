@@ -1,8 +1,6 @@
 import { SidebarToggle } from "@/app/_components/sidebar-toggle";
 import {
   SidebarInset,
-  SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { SelectTheme } from "@/components/ui/theme-toggler";
 import { UIStructure } from "@/components/ui/ui-structure";
