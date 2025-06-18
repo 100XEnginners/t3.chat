@@ -68,8 +68,6 @@ export function UIStructure() {
     }
   }, [chatsData]);
 
-  console.log(chats);
-
   const handleSaveChat = (chatId: string) => {
     try {
       saveChat.mutate({ chatId: chatId });
