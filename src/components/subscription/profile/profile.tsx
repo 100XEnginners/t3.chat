@@ -6,7 +6,6 @@ import Image from "next/image";
 
 export const Profile = ({ image, nickname, name, email, whatDoYouDo, customTraits, about, plan }: { image: string, nickname: string, name: string, email: string, whatDoYouDo: string, customTraits: string[], about: string, plan: string }) => {
   const { isBlurred } = useBlur();
-  console.log("isBlurred in profile:", isBlurred);
   return (
     <div
       className={cn(
@@ -47,9 +46,11 @@ export const Profile = ({ image, nickname, name, email, whatDoYouDo, customTrait
             </Badge>
           )}
         </div>
-        <Badge variant="secondary" className="text-white bg-pink-600">
-          {plan}
-        </Badge>
+        { plan && (
+          <Badge variant="secondary" className="text-white bg-pink-600">
+            {plan}
+          </Badge>
+        )}
       </div>
     </div>
   );
