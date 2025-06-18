@@ -1,18 +1,13 @@
 import "@/styles/globals.css";
-
-import { type Metadata } from "next";
+import type { Metadata } from "next";
 import { Geist, Inter, Playfair_Display, Roboto } from "next/font/google";
 import { TRPCReactProvider } from "@/trpc/react";
 import localFont from "next/font/local";
 import { FontProvider } from "@/contexts/font-context";
 import { BlurProvider } from "@/contexts/blur-context";
 import { Toaster } from "sonner";
-
-export const metadata: Metadata = {
-  title: "t3.chat",
-  description: "t3.chat",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
-};
+import { siteConfig } from "@/config/site";
+export const metadata: Metadata = siteConfig;
 
 const proxima = localFont({
   src: "../app/proxima_vara.woff2",
